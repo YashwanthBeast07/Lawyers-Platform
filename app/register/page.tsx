@@ -1,6 +1,6 @@
 // app/register/page.jsx
 "use client";
-import { ChangeEvent, ReactElement, SyntheticEvent, useState } from "react";
+import { ChangeEvent, ReactElement, useState } from "react";
 import Link from "next/link";
 
 type RoleType = {
@@ -64,11 +64,7 @@ export default function RegisterPage() {
           }}
         />
 
-        <Link href="/" className="relative font-serif text-2xl text-white">
-          Lex<span className="text-[#C9A84C]">.</span>In
-        </Link>
-
-        <div className="relative">
+        <div className="relative ">
           <div className="w-10 h-0.5 bg-[#C9A84C] mb-6" />
           <p className="font-serif text-3xl text-white leading-snug mb-6">
             Your legal journey <br />
@@ -107,7 +103,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Panel */}
-      <div className="flex-1 flex items-start justify-center px-6 py-12 overflow-y-auto">
+      <div className="flex-1 flex items-start justify-center pt-20 px-6 py-12 overflow-y-auto">
         <div className="w-full max-w-md">
 
           {/* Mobile Logo */}

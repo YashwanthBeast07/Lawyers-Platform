@@ -16,11 +16,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* Logo */}
-        <Link href="/" className="relative font-serif text-2xl text-white">
-          Lex<span className="text-[#C9A84C]">.</span>In
-        </Link>
-
         {/* Quote */}
         <div className="relative">
           <div className="w-10 h-0.5 bg-[#C9A84C] mb-6" />
