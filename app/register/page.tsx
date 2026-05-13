@@ -1,6 +1,6 @@
 // app/register/page.jsx
 "use client";
-import { ReactElement, SyntheticEvent, useState } from "react";
+import { ChangeEvent, ReactElement, SyntheticEvent, useState } from "react";
 import Link from "next/link";
 
 type RoleType = {
@@ -46,7 +46,7 @@ export default function RegisterPage() {
     specialization: "",
   });
 
-  const handleChange = (e:SyntheticEvent<HTMLInputElement>) => {
+  const handleChange = (e:ChangeEvent<HTMLInputElement | HTMLSelectElement >) => {
     const {name,value} = e.target as HTMLInputElement
     setForm({ ...form, [name]: value })
 };
