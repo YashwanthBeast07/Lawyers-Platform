@@ -59,7 +59,7 @@ export default function LoginPage() {
 
           {/* Google OAuth */}
           <a
-            href="/api/oauth2/authorization/google"
+            href="https://api.golawyers.online/api/oauth2/authorization/google"
             className="w-full flex items-center justify-center gap-3 border border-[#E2E8F0] hover:border-[#0D1B2A]/30 hover:bg-[#F8FAFC] text-sm text-[#0D1B2A] font-medium py-2.5 rounded-lg transition-all mb-6"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
