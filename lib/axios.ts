@@ -68,8 +68,10 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // Only attempt refresh on 401 and only once per request
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    // Only attempt refresh on 401 and only once per request.
+    // Also skip if the failing request IS the refresh endpoint — never refresh a refresh.
+    const isRefreshEndpoint = originalRequest.url?.includes("/auth/refresh");
+    if (error.response?.status !== 401 || originalRequest._retry || isRefreshEndpoint) {
       return Promise.reject(error);
     }
 

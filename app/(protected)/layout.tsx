@@ -3,49 +3,58 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
-import { fetchProfileThunk } from "@/lib/store/authSlice";
+import { setToken } from "@/lib/store/authSlice";
+import { authService, userService } from "@/lib/services";
+import { setAccessToken } from "@/lib/axios";
 import { notificationService } from "@/lib/services";
 import { ToastProvider } from "@/lib/toastContext";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Toast from "@/components/ui/Toast";
 import { PageSpinner } from "@/components/ui/Spinner";
+import { fetchProfileThunk } from "@/lib/store/authSlice";
 
 // ── Protected Layout ──────────────────────────────────────────────────────────
 
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
-
-  // We only need the user object — we deliberately do NOT read `loading` from
-  // Redux here because that flag is shared across all thunks and can cause a
-  // stuck loading screen if any thunk fails to settle before a redirect fires.
   const { user } = useAppSelector((s) => s.auth);
 
-  // Local boot flag — set once the auth check is complete (either direction)
   const [booted, setBooted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ── Boot: ensure user profile is loaded ──────────────────────────────────
+  // ── Boot: restore session on page load ──────────────────────────────────
   useEffect(() => {
-    // Already in Redux state (e.g. navigated client-side after login)
+    // Already authenticated client-side (e.g., just logged in without reload)
     if (user) {
       setBooted(true);
       return;
     }
 
-    // Fresh page load — try to restore session via the HttpOnly refresh_token cookie
     const boot = async () => {
       try {
-        const result = await dispatch(fetchProfileThunk());
-        if (fetchProfileThunk.rejected.match(result)) {
-          // Refresh + profile both failed — send to login
+        // Step 1: Call /auth/refresh directly to get a new access token.
+        // We do this explicitly rather than relying on the 401 interceptor
+        // chain (GET /users/me → 401 → interceptor → POST /auth/refresh)
+        // because the interceptor path is fragile on first load and can hang.
+        const authData = await authService.refresh();
+
+        // Step 2: Token is now in memory (authService.refresh calls setAccessToken).
+        // Fetch the full profile with the fresh token.
+        const profileResult = await dispatch(fetchProfileThunk());
+
+        if (fetchProfileThunk.rejected.match(profileResult)) {
+          // Refresh worked but profile failed — unusual, still redirect
           router.replace("/login");
           return;
         }
+
         setBooted(true);
-      } catch {
-        // Unexpected error — still redirect rather than hang
+      } catch (err) {
+        // Refresh failed — session is invalid or expired, send to login
+        console.warn("[ProtectedLayout] Session restore failed:", err);
+        setAccessToken(null);
         router.replace("/login");
       }
     };
@@ -54,7 +63,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Poll unread count every 60s (non-blocking) ───────────────────────────
+  // ── Poll unread notification count every 60 s ────────────────────────────
   const fetchUnread = useCallback(async () => {
     try {
       const count = await notificationService.getUnreadCount();
@@ -71,7 +80,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [booted, fetchUnread]);
 
-  // Show spinner only until boot resolves (not tied to any Redux loading flag)
   if (!booted) {
     return (
       <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center">
@@ -82,14 +90,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] flex">
-      {/* Sidebar */}
       <Sidebar
         unreadCount={unreadCount}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      {/* Main content — offset by sidebar width on lg+ */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-[240px]">
         {/* Mobile top bar */}
         <header className="lg:hidden sticky top-0 z-20 bg-[#0D1B2A] px-4 h-14 flex items-center gap-3 shrink-0">
@@ -107,11 +113,9 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
           </span>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>
 
-      {/* Toast renderer */}
       <Toast />
     </div>
   );

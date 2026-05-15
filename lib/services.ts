@@ -55,6 +55,10 @@ export const authService = {
     return data.data;
   },
 
+  async forgotPassword(email: string): Promise<void> {
+    await api.post("/auth/forgot-password", { email });
+  },
+
   async getSessions(): Promise<SessionResponse[]> {
     const { data } = await api.get<ApiResponse<SessionResponse[]>>("/auth/sessions");
     return data.data;
