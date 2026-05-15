@@ -1,4 +1,4 @@
-// app/page.jsx
+// app/page.tsx
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import SearchBar from "@/components/landing/SearchBar";
