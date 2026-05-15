@@ -72,8 +72,7 @@ export default function RegisterPage() {
     dispatch(clearError());
 
     const payload: RegisterRequest = {
-      firstName: form.firstName,
-      lastName: form.lastName,
+      fullName: `${form.firstName} ${form.lastName}`.trim(),
       email: form.email,
       password: form.password,
       phone: form.phone || undefined,
