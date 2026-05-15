@@ -104,15 +104,11 @@ api.interceptors.response.use(
       processQueue(null, newToken);
       return api(originalRequest);
     } catch (refreshError) {
-      // Refresh failed — clear token and redirect to login
+      // Refresh failed — clear token and let the caller decide how to handle it.
+      // Do NOT call window.location.href here: that races against React Router and
+      // prevents fetchProfileThunk from ever resolving, leaving loading = true forever.
       setAccessToken(null);
       processQueue(refreshError as AxiosError, null);
-
-      // Redirect to login (only in browser environment)
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
-
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

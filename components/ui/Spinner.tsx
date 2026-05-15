@@ -34,7 +34,7 @@ export default function Spinner({ size = "md", className = "" }: SpinnerProps) {
   );
 }
 
-// Full-page centered spinner
+// Full-page centered spinner — label prop lets callers set context-specific text
 export function PageSpinner({ label = "Loading…" }: { label?: string }) {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-[#64748B]">

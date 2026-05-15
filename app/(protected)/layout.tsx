@@ -15,37 +15,52 @@ import { PageSpinner } from "@/components/ui/Spinner";
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { user, loading } = useAppSelector((s) => s.auth);
 
+  // We only need the user object — we deliberately do NOT read `loading` from
+  // Redux here because that flag is shared across all thunks and can cause a
+  // stuck loading screen if any thunk fails to settle before a redirect fires.
+  const { user } = useAppSelector((s) => s.auth);
+
+  // Local boot flag — set once the auth check is complete (either direction)
   const [booted, setBooted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ── Boot: ensure user is loaded ──────────────────────────────────────────
+  // ── Boot: ensure user profile is loaded ──────────────────────────────────
   useEffect(() => {
-    const boot = async () => {
-      if (user) {
-        setBooted(true);
-        return;
-      }
-      const result = await dispatch(fetchProfileThunk());
-      if (fetchProfileThunk.rejected.match(result)) {
-        router.push("/login");
-        return;
-      }
+    // Already in Redux state (e.g. navigated client-side after login)
+    if (user) {
       setBooted(true);
+      return;
+    }
+
+    // Fresh page load — try to restore session via the HttpOnly refresh_token cookie
+    const boot = async () => {
+      try {
+        const result = await dispatch(fetchProfileThunk());
+        if (fetchProfileThunk.rejected.match(result)) {
+          // Refresh + profile both failed — send to login
+          router.replace("/login");
+          return;
+        }
+        setBooted(true);
+      } catch {
+        // Unexpected error — still redirect rather than hang
+        router.replace("/login");
+      }
     };
+
     boot();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Poll unread count every 60s ───────────────────────────────────────────
+  // ── Poll unread count every 60s (non-blocking) ───────────────────────────
   const fetchUnread = useCallback(async () => {
     try {
       const count = await notificationService.getUnreadCount();
       setUnreadCount(count);
     } catch {
-      // ignore — non-critical
+      // Non-critical — ignore silently
     }
   }, []);
 
@@ -56,10 +71,11 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [booted, fetchUnread]);
 
-  if (!booted || loading) {
+  // Show spinner only until boot resolves (not tied to any Redux loading flag)
+  if (!booted) {
     return (
       <div className="min-h-screen bg-[#FAFAF7] flex items-center justify-center">
-        <PageSpinner />
+        <PageSpinner label="Restoring session…" />
       </div>
     );
   }
@@ -86,13 +102,13 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <span className="text-white font-bold">Go<span className="text-[#C9A84C]">Lawyers</span></span>
+          <span className="text-white font-bold">
+            Go<span className="text-[#C9A84C]">Lawyers</span>
+          </span>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 lg:p-8">
-          {children}
-        </main>
+        <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>
 
       {/* Toast renderer */}
