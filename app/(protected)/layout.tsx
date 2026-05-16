@@ -10,15 +10,15 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, loading } = useAppSelector((state) => state.auth);
+  const { user, loading, initialized } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (initialized && !loading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, loading, initialized, router]);
 
-  if (loading) {
+  if (!initialized || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#FAFAF7]">
         <div className="w-8 h-8 border-4 border-[#0D1B2A] border-t-[#C9A84C] rounded-full animate-spin" />

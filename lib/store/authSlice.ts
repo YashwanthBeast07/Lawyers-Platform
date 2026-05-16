@@ -16,6 +16,7 @@ interface AuthState {
   sessions: SessionResponse[];
   isAuthenticated: boolean;
   loading: boolean;
+  initialized: boolean;
   error: string | null;
 }
 
@@ -25,6 +26,7 @@ const initialState: AuthState = {
   sessions: [],
   isAuthenticated: false,
   loading: false,
+  initialized: false,
   error: null,
 };
 
@@ -177,9 +179,11 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.initialized = true;
       })
       .addCase(fetchProfileThunk.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.error = action.payload ?? "Unknown error";
       });
 
