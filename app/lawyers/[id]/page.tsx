@@ -243,18 +243,7 @@ export default function LawyerProfilePage() {
                        <p className="text-sm font-bold text-[#0D1B2A]">{lawyer.experienceYears} Years</p>
                     </div>
                   )}
-                  {lawyer.tags && lawyer.tags.length > 0 && (
-                    <div>
-                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Areas of Expertise</p>
-                       <div className="flex flex-wrap gap-2">
-                         {lawyer.tags.map(tag => (
-                           <span key={tag} className="bg-slate-50 border border-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold">
-                             {tag}
-                           </span>
-                         ))}
-                       </div>
-                    </div>
-                  )}
+
                 </div>
               </div>
 
