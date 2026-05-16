@@ -83,14 +83,14 @@ export const userService = {
   },
 
   async getPendingVerifications(page = 0, size = 10): Promise<PagedResponse<UserProfileResponse>> {
-    const { data } = await api.get<ApiResponse<PagedResponse<UserProfileResponse>>>("/users/admin/lawyers/pending", {
+    const { data } = await api.get<ApiResponse<PagedResponse<UserProfileResponse>>>("/admin/lawyers/pending", {
       params: { page, size },
     });
     return data.data;
   },
 
   async verifyLawyer(id: number): Promise<void> {
-    await api.patch(`/users/admin/lawyers/${id}/verify`);
+    await api.patch(`/admin/lawyers/${id}/verify`);
   },
 };
 

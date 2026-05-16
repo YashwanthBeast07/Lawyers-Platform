@@ -207,7 +207,7 @@ export default function CasesPage() {
                       Filed on {formatDate(c.createdAt)}
                     </span>
                     <span className="text-slate-300">•</span>
-                    <span>{c.caseType.replace("_", " ")}</span>
+                    <span>{c.caseType?.replace(/_/g, " ") ?? "—"}</span>
                     {c.lawyerName && (
                       <>
                         <span className="text-slate-300">•</span>

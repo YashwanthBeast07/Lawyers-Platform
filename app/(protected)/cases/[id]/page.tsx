@@ -205,7 +205,7 @@ export default function CaseDetailPage() {
           <SectionHeader 
             eyebrow={`Case #${caseData.id}`} 
             title={caseData.title} 
-            subtitle={`Filed on ${formatDate(caseData.createdAt)} • ${caseData.caseType.replace("_", " ")}`} 
+            subtitle={`Filed on ${formatDate(caseData.createdAt)} • ${caseData.caseType?.replace(/_/g, " ") ?? "—"}`} 
           />
           <StatusPill status={caseData.status} />
         </div>
@@ -247,7 +247,7 @@ export default function CaseDetailPage() {
                     disabled={updatingStatus}
                     className="bg-[#0D1B2A] text-white px-4 py-2.5 rounded-lg font-medium text-sm hover:bg-[#1A3050] transition-colors shadow-sm disabled:opacity-50"
                   >
-                    Mark as {s.replace("_", " ")}
+                    Mark as {s.replace(/_/g, " ")}
                   </button>
                 ))}
               </div>

@@ -269,7 +269,7 @@ export default function AppointmentsPage() {
                     <span className="text-slate-300">•</span>
                     <span>{user?.role === "CLIENT" ? `Lawyer: ${a.lawyerName}` : `Client: ${a.clientName}`}</span>
                     <span className="text-slate-300">•</span>
-                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">{a.mode.replace("_", " ")}</span>
+                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">{a.mode?.replace(/_/g, " ") ?? "—"}</span>
                   </div>
                   {a.notes && (
                     <p className="text-xs text-slate-400 italic mt-2 border-l-2 border-slate-200 pl-2">

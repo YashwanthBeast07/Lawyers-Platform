@@ -137,7 +137,7 @@ export default function DashboardPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="font-bold text-[#0D1B2A] group-hover:text-[#C9A84C] transition-colors">{c.title}</h3>
-                      <p className="text-xs font-medium text-slate-500 mt-1">{c.caseType.replace("_", " ")}</p>
+                      <p className="text-xs font-medium text-slate-500 mt-1">{c.caseType?.replace(/_/g, " ") ?? "—"}</p>
                     </div>
                     <StatusPill status={c.status} />
                   </div>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                       </svg>
-                      {user?.role === "CLIENT" ? `With ${a.lawyerName}` : `Client: ${a.clientName}`} ({a.mode.replace("_", " ")})
+                      {user?.role === "CLIENT" ? `With ${a.lawyerName}` : `Client: ${a.clientName}`} ({a.mode?.replace(/_/g, " ") ?? "—"})
                     </p>
                   </div>
                 </div>
