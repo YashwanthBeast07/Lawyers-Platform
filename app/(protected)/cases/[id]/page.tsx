@@ -7,33 +7,14 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { caseService, paymentService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
 import type { CaseResponse, CaseStatus, PaymentResponse } from "@/lib/types";
-import StatusBadge from "@/components/ui/StatusBadge";
+import StatusPill from "@/components/ui/StatusPill";
+import SectionHeader from "@/components/ui/SectionHeader";
 import { PageSpinner } from "@/components/ui/Spinner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#F1F5F9]">
-        <h2 className="font-semibold text-[#0D1B2A] text-sm">{title}</h2>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex justify-between gap-4 py-2.5 border-b border-[#F8FAFC] last:border-0">
-      <span className="text-xs text-[#94A3B8] uppercase tracking-wide shrink-0">{label}</span>
-      <span className="text-sm font-medium text-[#0D1B2A] text-right">{value}</span>
-    </div>
-  );
 }
 
 // ── Payment Panel ─────────────────────────────────────────────────────────────
@@ -91,7 +72,6 @@ function PaymentPanel({ caseId, amount }: { caseId: number; amount?: number }) {
     if (!amount) return;
     setPaying(true);
     try {
-      // Load Razorpay SDK
       if (!window.Razorpay) {
         await new Promise<void>((resolve) => {
           const s = document.createElement("script");
@@ -129,31 +109,39 @@ function PaymentPanel({ caseId, amount }: { caseId: number; amount?: number }) {
     }
   };
 
-  if (loading) return <div className="h-10 bg-[#F1F5F9] rounded-lg animate-pulse" />;
-
+  if (loading) return <div className="h-10 bg-slate-50 rounded-lg animate-pulse" />;
   if (!payment || !user) return null;
 
   return (
-    <Section title="Payment">
+    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
+      <SectionHeader title="Payment Details" />
       <div className="space-y-3">
-        <InfoRow label="Amount" value={`₹${payment.amount.toLocaleString("en-IN")}`} />
-        <InfoRow label="Status" value={<StatusBadge status={payment.status} variant="payment" size="md" />} />
-        {payment.razorpayPaymentId && (
-          <InfoRow label="Transaction ID" value={<span className="font-mono text-xs">{payment.razorpayPaymentId}</span>} />
+        <div className="flex justify-between items-center py-2 border-b border-slate-50">
+          <span className="text-sm text-slate-500 font-medium">Amount</span>
+          <span className="font-bold text-[#0D1B2A]">₹{payment.amount.toLocaleString("en-IN")}</span>
+        </div>
+        <div className="flex justify-between items-center py-2 border-b border-slate-50">
+          <span className="text-sm text-slate-500 font-medium">Status</span>
+          <StatusPill status={payment.status} />
+        </div>
+        {payment.paidAt && (
+          <div className="flex justify-between items-center py-2 border-b border-slate-50">
+            <span className="text-sm text-slate-500 font-medium">Paid On</span>
+            <span className="text-sm font-medium text-[#0D1B2A]">{formatDate(payment.paidAt)}</span>
+          </div>
         )}
-        {payment.paidAt && <InfoRow label="Paid On" value={formatDate(payment.paidAt)} />}
 
         {user.role === "CLIENT" && payment.status === "FAILED" && payment.canRetry && (
           <button
             onClick={handleRetry}
             disabled={paying}
-            className="w-full h-10 bg-[#C9A84C] hover:bg-[#b8943d] disabled:opacity-60 text-[#0D1B2A] text-sm font-semibold rounded-lg transition-all"
+            className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50"
           >
             {paying ? "Opening checkout…" : `Retry Payment (${payment.retryCount}/${payment.maxRetries})`}
           </button>
         )}
       </div>
-    </Section>
+    </div>
   );
 }
 
@@ -204,90 +192,122 @@ export default function CaseDetailPage() {
   const nextStatuses = NEXT_STATUSES[caseData.status] ?? [];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Back + title */}
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+      {/* Header */}
       <div>
-        <Link href="/cases" className="inline-flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#0D1B2A] transition-colors mb-3">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        <Link href="/cases" className="text-sm font-medium text-slate-500 hover:text-[#C9A84C] transition-colors flex items-center gap-2 mb-6">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          All Cases
+          Back to Cases
         </Link>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <h1 className="text-xl font-bold text-[#0D1B2A] flex-1">{caseData.title}</h1>
-          <StatusBadge status={caseData.status} variant="case" size="md" />
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <SectionHeader 
+            eyebrow={`Case #${caseData.id}`} 
+            title={caseData.title} 
+            subtitle={`Filed on ${formatDate(caseData.createdAt)} • ${caseData.caseType.replace("_", " ")}`} 
+          />
+          <StatusPill status={caseData.status} />
         </div>
       </div>
 
-      {/* Details */}
-      <Section title="Case Details">
-        <InfoRow label="Case ID" value={`#${caseData.id}`} />
-        <InfoRow label="Type" value={caseData.caseType.replace("_", " ")} />
-        <InfoRow label="Client" value={caseData.clientName} />
-        <InfoRow label="Assigned Lawyer" value={caseData.lawyerName ?? <span className="text-[#94A3B8]">Not assigned</span>} />
-        <InfoRow label="Filed On" value={formatDate(caseData.createdAt)} />
-        <InfoRow label="Last Updated" value={formatDate(caseData.updatedAt)} />
-        {caseData.quotedAmount && (
-          <InfoRow label="Quoted Amount" value={`₹${Number(caseData.quotedAmount).toLocaleString("en-IN")}`} />
-        )}
-      </Section>
-
-      {/* Description */}
-      <Section title="Description">
-        <p className="text-sm text-[#64748B] leading-relaxed whitespace-pre-wrap">{caseData.description}</p>
-      </Section>
-
-      {/* Tagged Laws */}
-      {caseData.taggedLaws && caseData.taggedLaws.length > 0 && (
-        <Section title="Tagged Laws">
-          <div className="flex flex-wrap gap-2">
-            {caseData.taggedLaws.map((law) => (
-              <span key={law} className="text-xs font-medium px-3 py-1 bg-[#F1F5F9] text-[#64748B] rounded-full border border-[#E2E8F0]">
-                {law}
-              </span>
-            ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Left Column */}
+        <div className="md:col-span-2 space-y-8">
+          
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
+            <SectionHeader title="Description" />
+            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+              {caseData.description}
+            </p>
           </div>
-        </Section>
-      )}
 
-      {/* Assign Lawyer (for unassigned CLIENT cases) */}
-      {user?.role === "CLIENT" && !caseData.lawyerId && caseData.status === "OPEN" && (
-        <div className="bg-[#0D1B2A]/5 border border-[#0D1B2A]/10 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-[#0D1B2A]">No lawyer assigned yet</p>
-            <p className="text-xs text-[#64748B] mt-0.5">Browse verified advocates and assign one to this case.</p>
-          </div>
-          <Link
-            href="/lawyers"
-            className="shrink-0 text-sm font-semibold bg-[#C9A84C] hover:bg-[#b8943d] text-[#0D1B2A] px-4 py-2 rounded-lg transition-all"
-          >
-            Find a Lawyer
-          </Link>
+          {caseData.taggedLaws && caseData.taggedLaws.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
+              <SectionHeader title="Relevant Laws" />
+              <div className="flex flex-wrap gap-2">
+                {caseData.taggedLaws.map(law => (
+                  <span key={law} className="bg-slate-50 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold border border-slate-100">
+                    {law}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Status Update (LAWYER/ADMIN) */}
+          {canUpdateStatus && nextStatuses.length > 0 && (
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
+              <SectionHeader title="Update Status" subtitle="Change the current status of this case." />
+              <div className="flex flex-wrap gap-3 mt-4">
+                {nextStatuses.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleStatusUpdate(s)}
+                    disabled={updatingStatus}
+                    className="bg-[#0D1B2A] text-white px-4 py-2.5 rounded-lg font-medium text-sm hover:bg-[#1A3050] transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    Mark as {s.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Status Update (LAWYER/ADMIN) */}
-      {canUpdateStatus && nextStatuses.length > 0 && (
-        <Section title="Update Status">
-          <div className="flex flex-wrap gap-2">
-            {nextStatuses.map((s) => (
-              <button
-                key={s}
-                onClick={() => handleStatusUpdate(s)}
-                disabled={updatingStatus}
-                className="text-sm font-medium px-4 py-2 border border-[#E2E8F0] text-[#64748B] rounded-lg hover:border-[#0D1B2A] hover:text-[#0D1B2A] disabled:opacity-50 transition-all"
-              >
-                Mark as {s.replace("_", " ")}
-              </button>
-            ))}
+        {/* Right Column */}
+        <div className="space-y-8">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-6">
+            <SectionHeader title="Details" />
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Client</p>
+                <p className="text-sm font-bold text-[#0D1B2A]">{caseData.clientName}</p>
+              </div>
+              
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Lawyer</p>
+                {caseData.lawyerName ? (
+                  <p className="text-sm font-bold text-[#0D1B2A]">{caseData.lawyerName}</p>
+                ) : (
+                  <p className="text-sm font-medium text-slate-500 italic">Not Assigned</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Last Updated</p>
+                <p className="text-sm font-bold text-[#0D1B2A]">{formatDate(caseData.updatedAt)}</p>
+              </div>
+
+              {caseData.quotedAmount && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Quoted Amount</p>
+                  <p className="text-sm font-bold text-[#0D1B2A]">₹{Number(caseData.quotedAmount).toLocaleString("en-IN")}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Assign Lawyer Call to Action */}
+            {user?.role === "CLIENT" && !caseData.lawyerId && caseData.status === "OPEN" && (
+              <div className="pt-4 border-t border-slate-100">
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/20 rounded-lg p-4">
+                  <p className="text-xs font-bold text-[#0D1B2A] mb-1">Find Representation</p>
+                  <p className="text-xs text-slate-600 mb-3">Browse our directory of verified advocates.</p>
+                  <Link href="/lawyers" className="block text-center bg-[#C9A84C] text-[#0D1B2A] px-4 py-2 rounded-lg font-bold text-xs hover:bg-[#E8C97A] transition-colors">
+                    Search Lawyers
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
-        </Section>
-      )}
 
-      {/* Payment */}
-      {caseData.quotedAmount && (
-        <PaymentPanel caseId={caseData.id} amount={Number(caseData.quotedAmount)} />
-      )}
+          {/* Payment Panel */}
+          {caseData.quotedAmount && (
+             <PaymentPanel caseId={caseData.id} amount={Number(caseData.quotedAmount)} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

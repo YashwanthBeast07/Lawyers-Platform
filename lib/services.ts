@@ -81,6 +81,17 @@ export const userService = {
     const { data } = await api.patch<ApiResponse<UserProfileResponse>>("/users/me", payload);
     return data.data;
   },
+
+  async getPendingVerifications(page = 0, size = 10): Promise<PagedResponse<UserProfileResponse>> {
+    const { data } = await api.get<ApiResponse<PagedResponse<UserProfileResponse>>>("/users/admin/lawyers/pending", {
+      params: { page, size },
+    });
+    return data.data;
+  },
+
+  async verifyLawyer(id: number): Promise<void> {
+    await api.patch(`/users/admin/lawyers/${id}/verify`);
+  },
 };
 
 // ── Lawyer Service ────────────────────────────────────────────────────────────
