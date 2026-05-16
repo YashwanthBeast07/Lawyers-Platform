@@ -77,24 +77,19 @@ export default function AdminVerificationsPage() {
           <div className="divide-y divide-slate-100">
             {lawyers.map((lawyer) => (
               <div key={lawyer.id} className="p-6 hover:bg-[#FAFAF7] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#0D1B2A] rounded-xl flex items-center justify-center text-[#C9A84C] font-black text-xl shadow-inner shrink-0">
-                    {lawyer.firstName?.[0]}{lawyer.lastName?.[0]}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#FAFAF7] border border-[#E2E8F0] flex items-center justify-center text-[#0D1B2A] font-bold text-sm">
+                    {lawyer.fullName?.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-[#0D1B2A]">
-                      {lawyer.firstName} {lawyer.lastName}
-                    </h3>
-                    <p className="text-sm font-medium text-slate-500 mb-2">
+                    <p className="font-semibold text-[#0D1B2A]">
+                      {lawyer.fullName}
+                    </p>
+                    <p className="text-xs text-[#64748B] mb-1">{lawyer.email}</p>
+                    <p className="text-xs font-medium text-slate-500">
                       {lawyer.specialization || "General Practice"}
                     </p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-400">
-                      <span className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                        </svg>
-                        {lawyer.email}
-                      </span>
+                    <div className="mt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-400">
                       <span className="flex items-center gap-1.5">
                         <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

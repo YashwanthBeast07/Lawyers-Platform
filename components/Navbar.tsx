@@ -60,10 +60,9 @@ export default function Navbar() {
               className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
             >
               <span className="w-7 h-7 rounded-full bg-[#C9A84C]/20 border border-[#C9A84C]/30 flex items-center justify-center text-[#C9A84C] text-xs font-bold">
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
+                {user.fullName?.[0]}
               </span>
-              <span className="hidden sm:inline">{user.firstName}</span>
+              <span className="hidden sm:inline">{user.fullName}</span>
             </Link>
             <button
               onClick={handleLogout}

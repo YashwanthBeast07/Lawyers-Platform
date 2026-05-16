@@ -70,7 +70,6 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!termsAccepted) return;
     dispatch(clearError());
-
     const payload: RegisterRequest = {
       fullName: `${form.firstName} ${form.lastName}`.trim(),
       email: form.email,

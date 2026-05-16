@@ -108,8 +108,8 @@ export default function Sidebar() {
   const isAdmin = user?.role === "ADMIN";
   const navItems = isAdmin ? ADMIN_NAV : CLIENT_NAV;
 
-  const initials = user ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase() : "U";
-  const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User";
+  const fullName = user?.fullName || "User";
+  const initials = fullName.substring(0, 2).toUpperCase();
 
   return (
     <aside className="w-[220px] bg-[#0D1B2A] flex flex-col min-h-screen border-r border-white/5 flex-shrink-0">

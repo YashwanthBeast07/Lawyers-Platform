@@ -55,8 +55,7 @@ export interface RegisterRequest {
 
 export interface UserProfileResponse {
   id: number;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone?: string;
   role: UserRole;
@@ -69,8 +68,7 @@ export interface UserProfileResponse {
 }
 
 export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
   phone?: string;
   specialization?: string;
 }
