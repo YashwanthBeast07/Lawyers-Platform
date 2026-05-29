@@ -112,6 +112,7 @@ export interface CaseResponse {
   caseType: CaseType;
   status: CaseStatus;
   quotedAmount?: number;
+  orderCopyPath?: string;
   clientId: number;
   clientName: string;
   lawyerId?: number;
@@ -135,6 +136,14 @@ export interface AssignLawyerRequest {
 
 export interface UpdateStatusRequest {
   status: CaseStatus;
+}
+
+export interface CaseMessageResponse {
+  id: number;
+  senderName: string;
+  senderRole: UserRole;
+  message: string;
+  createdAt: string;
 }
 
 // ── Appointments ───────────────────────────────────────────────────────────────

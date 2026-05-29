@@ -48,7 +48,7 @@ export const loginThunk = createAsyncThunk<
 });
 
 export const registerThunk = createAsyncThunk<
-  AuthResponse,
+  UserProfileResponse,
   RegisterRequest,
   { rejectValue: string }
 >("auth/register", async (payload, { rejectWithValue }) => {

@@ -8,6 +8,7 @@ import type { CaseResponse, AppointmentResponse } from "@/lib/types";
 import { PageSpinner } from "@/components/ui/Spinner";
 import SectionHeader from "@/components/ui/SectionHeader";
 import StatusPill from "@/components/ui/StatusPill";
+import { useToast } from "@/lib/toastContext";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -39,30 +40,57 @@ function StatCard({ label, value, sub, href }: { label: string; value: string | 
 
 export default function DashboardPage() {
   const { user } = useAppSelector((s) => s.auth);
+  const { toast } = useToast();
+  
   const [cases, setCases] = useState<CaseResponse[]>([]);
+  const [matchedCases, setMatchedCases] = useState<CaseResponse[]>([]);
   const [appts, setAppts] = useState<AppointmentResponse[]>([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [claimingId, setClaimingId] = useState<number | null>(null);
+
+  const fetchAll = async () => {
+    try {
+      const [casesData, apptsData, unreadData] = await Promise.all([
+        caseService.getMyCases(0, 5),
+        appointmentService.getMyAppointments(0, 5),
+        notificationService.getUnreadCount(),
+      ]);
+      setCases(casesData.content);
+      setAppts(apptsData.content);
+      setUnread(unreadData);
+
+      if (user?.role === "LAWYER") {
+        const matchedData = await caseService.getMatchedCases(0, 5);
+        setMatchedCases(matchedData.content);
+      }
+    } catch {
+      // silently fail — boot handled by layout
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [casesData, apptsData, unreadData] = await Promise.all([
-          caseService.getMyCases(0, 5),
-          appointmentService.getMyAppointments(0, 5),
-          notificationService.getUnreadCount(),
-        ]);
-        setCases(casesData.content);
-        setAppts(apptsData.content);
-        setUnread(unreadData);
-      } catch {
-        // silently fail — boot handled by layout
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
+    if (user) {
+      fetchAll();
+    }
+  }, [user]);
+
+  const handleClaimCase = async (caseId: number) => {
+    if (!user) return;
+    setClaimingId(caseId);
+    try {
+      await caseService.assignLawyer(caseId, { lawyerId: user.id });
+      toast.success("Case claimed successfully!");
+      await fetchAll();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to claim case.";
+      toast.error(msg);
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   if (loading) return <PageSpinner />;
 
@@ -120,12 +148,49 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Lawyer Specialized Matching Cases */}
+      {user?.role === "LAWYER" && (
+        <div className="space-y-4">
+          <SectionHeader title="Recommended Open Cases" subtitle={`Based on your specialization: ${user.specialization || "General Practice"}`} />
+          {matchedCases.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 border border-slate-100 text-center shadow-sm">
+              <p className="text-sm text-slate-500 font-medium">No recommended open cases matching your specialization at the moment.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {matchedCases.map((c) => (
+                <div key={c.id} className="bg-white border border-slate-100 p-6 rounded-xl shadow-sm space-y-4 flex flex-col justify-between hover:border-[#C9A84C] transition-all">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-bold text-[#0D1B2A] text-lg leading-tight">{c.title}</h3>
+                      <span className="bg-[#C9A84C]/10 text-[#C9A84C] px-2 py-0.5 rounded text-xs font-bold uppercase">{c.caseType}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-400">Submitted by Client: {c.clientName}</p>
+                    <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed pt-1">{c.description}</p>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <span className="text-xs text-slate-400 font-medium">Filed on {formatDate(c.createdAt)}</span>
+                    <button
+                      disabled={claimingId === c.id}
+                      onClick={() => handleClaimCase(c.id)}
+                      className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#0D1B2A] px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+                    >
+                      {claimingId === c.id ? "Claiming..." : "Accept Case"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Recent Cases */}
         <div className="lg:col-span-2 space-y-4">
-          <SectionHeader title="Recent Cases" />
+          <SectionHeader title={user?.role === "LAWYER" ? "My Active Cases" : "Recent Cases"} />
           {cases.length === 0 ? (
             <div className="bg-white rounded-xl p-8 border border-slate-100 text-center shadow-sm">
               <p className="text-sm text-slate-500 font-medium">No cases found.</p>

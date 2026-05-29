@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { userService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
-import type { UserProfileResponse } from "@/lib/types";
+import type { LawyerProfileResponse } from "@/lib/types";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Pagination from "@/components/ui/Pagination";
 import { PageSpinner } from "@/components/ui/Spinner";
 
 export default function AdminVerificationsPage() {
   const { toast } = useToast();
-  const [lawyers, setLawyers] = useState<UserProfileResponse[]>([]);
+  const [lawyers, setLawyers] = useState<LawyerProfileResponse[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);

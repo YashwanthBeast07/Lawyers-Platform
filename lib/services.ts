@@ -23,6 +23,8 @@ import type {
   SessionResponse,
   UpdateStatusRequest,
   UserProfileResponse,
+  UpdateProfileRequest,
+  CaseMessageResponse,
 } from "@/lib/types";
 
 // ── Auth Service ──────────────────────────────────────────────────────────────
@@ -30,12 +32,19 @@ import type {
 export const authService = {
   async login(payload: LoginRequest): Promise<AuthResponse> {
     const { data } = await api.post<ApiResponse<AuthResponse>>("/auth/login", payload);
-    setAccessToken(data.data.accessToken);
+    if (data.data.accessToken) {
+      setAccessToken(data.data.accessToken);
+    }
     return data.data;
   },
 
-  async register(payload: RegisterRequest): Promise<AuthResponse> {
-    const { data } = await api.post<ApiResponse<AuthResponse>>("/auth/register", payload);
+  async register(payload: RegisterRequest): Promise<UserProfileResponse> {
+    const { data } = await api.post<ApiResponse<UserProfileResponse>>("/auth/register", payload);
+    return data.data;
+  },
+
+  async getMe(): Promise<UserProfileResponse> {
+    const { data } = await api.get<ApiResponse<UserProfileResponse>>("/users/me");
     return data.data;
   },
 
@@ -44,19 +53,14 @@ export const authService = {
     setAccessToken(null);
   },
 
-  async logoutAll(): Promise<void> {
-    await api.post("/auth/logout-all");
-    setAccessToken(null);
-  },
-
   async refresh(): Promise<AuthResponse> {
     const { data } = await api.post<ApiResponse<AuthResponse>>("/auth/refresh");
-    setAccessToken(data.data.accessToken);
     return data.data;
   },
 
-  async forgotPassword(email: string): Promise<void> {
-    await api.post("/auth/forgot-password", { email });
+  async logoutAll(): Promise<void> {
+    await api.post("/auth/logout-all");
+    setAccessToken(null);
   },
 
   async getSessions(): Promise<SessionResponse[]> {
@@ -66,6 +70,10 @@ export const authService = {
 
   async revokeSession(sessionId: string): Promise<void> {
     await api.delete(`/auth/sessions/${sessionId}`);
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await api.post("/auth/forgot-password", { email });
   },
 };
 
@@ -77,13 +85,13 @@ export const userService = {
     return data.data;
   },
 
-  async updateProfile(payload: Partial<UserProfileResponse>): Promise<UserProfileResponse> {
+  async updateProfile(payload: UpdateProfileRequest): Promise<UserProfileResponse> {
     const { data } = await api.patch<ApiResponse<UserProfileResponse>>("/users/me", payload);
     return data.data;
   },
 
-  async getPendingVerifications(page = 0, size = 10): Promise<PagedResponse<UserProfileResponse>> {
-    const { data } = await api.get<ApiResponse<PagedResponse<UserProfileResponse>>>("/admin/lawyers/pending", {
+  async getPendingVerifications(page = 0, size = 20): Promise<PagedResponse<LawyerProfileResponse>> {
+    const { data } = await api.get<ApiResponse<PagedResponse<LawyerProfileResponse>>>("/admin/lawyers/pending", {
       params: { page, size },
     });
     return data.data;
@@ -97,15 +105,26 @@ export const userService = {
 // ── Lawyer Service ────────────────────────────────────────────────────────────
 
 export const lawyerService = {
+  async getVerifiedLawyers(
+    specialization?: string,
+    page = 0,
+    size = 10
+  ): Promise<PagedResponse<LawyerProfileResponse>> {
+    const { data } = await api.get<ApiResponse<PagedResponse<LawyerProfileResponse>>>(
+      "/users/lawyers",
+      {
+        params: { specialization, page, size },
+      }
+    );
+    return data.data;
+  },
+
   async search(params: {
     specialization?: string;
     page?: number;
     size?: number;
   }): Promise<PagedResponse<LawyerProfileResponse>> {
-    const { data } = await api.get<ApiResponse<PagedResponse<LawyerProfileResponse>>>("/lawyers", {
-      params,
-    });
-    return data.data;
+    return this.getVerifiedLawyers(params.specialization, params.page, params.size);
   },
 
   async getById(id: number): Promise<LawyerProfileResponse> {
@@ -134,6 +153,13 @@ export const caseService = {
     return data.data;
   },
 
+  async getMatchedCases(page = 0, size = 10): Promise<PagedResponse<CaseResponse>> {
+    const { data } = await api.get<ApiResponse<PagedResponse<CaseResponse>>>("/cases/matched", {
+      params: { page, size },
+    });
+    return data.data;
+  },
+
   async assignLawyer(id: number, payload: AssignLawyerRequest): Promise<CaseResponse> {
     const { data } = await api.patch<ApiResponse<CaseResponse>>(`/cases/${id}/assign`, payload);
     return data.data;
@@ -141,6 +167,32 @@ export const caseService = {
 
   async updateStatus(id: number, payload: UpdateStatusRequest): Promise<CaseResponse> {
     const { data } = await api.patch<ApiResponse<CaseResponse>>(`/cases/${id}/status`, payload);
+    return data.data;
+  },
+
+  async uploadOrderCopy(id: number, file: File): Promise<CaseResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post<ApiResponse<CaseResponse>>(`/cases/${id}/order-copy`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data.data;
+  },
+
+  async downloadOrderCopy(id: number): Promise<Blob> {
+    const { data } = await api.get(`/cases/${id}/download-order-copy`, {
+      responseType: "blob",
+    });
+    return data;
+  },
+
+  async getMessages(id: number): Promise<CaseMessageResponse[]> {
+    const { data } = await api.get<ApiResponse<CaseMessageResponse[]>>(`/cases/${id}/messages`);
+    return data.data;
+  },
+
+  async sendMessage(id: number, message: string): Promise<CaseMessageResponse> {
+    const { data } = await api.post<ApiResponse<CaseMessageResponse>>(`/cases/${id}/messages`, { message });
     return data.data;
   },
 
