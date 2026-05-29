@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, Suspense } from "react";
 import { useAppSelector } from "@/lib/store/hooks";
 import { appointmentService, caseService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
@@ -10,6 +10,7 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import Pagination from "@/components/ui/Pagination";
 import Modal from "@/components/ui/Modal";
 import { PageSpinner } from "@/components/ui/Spinner";
+import { useSearchParams } from "next/navigation";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -22,10 +23,11 @@ function formatDateTime(iso: string) {
 
 // ── Book Appointment Modal ────────────────────────────────────────────────────
 
-function BookModal({ open, onClose, onSuccess }: {
+function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
   open: boolean;
   onClose: () => void;
   onSuccess: (a: AppointmentResponse) => void;
+  requestedLawyerId?: number | null;
 }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -40,16 +42,31 @@ function BookModal({ open, onClose, onSuccess }: {
 
   useEffect(() => {
     if (!open) return;
-    caseService.getMyCases(0, 50).then((d) =>
-      setCases(d.content.filter((c) => ["ASSIGNED", "IN_PROGRESS"].includes(c.status)))
-    );
-  }, [open]);
+    caseService.getMyCases(0, 50).then((d) => {
+      if (requestedLawyerId) {
+        // Show cases assigned to this lawyer OR unassigned cases
+        setCases(d.content.filter((c) => 
+          c.lawyerId === requestedLawyerId || 
+          (!c.lawyerId && ["OPEN", "ASSIGNED", "IN_PROGRESS"].includes(c.status))
+        ));
+      } else {
+        setCases(d.content.filter((c) => ["ASSIGNED", "IN_PROGRESS"].includes(c.status)));
+      }
+    });
+  }, [open, requestedLawyerId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.caseRequestId || !form.scheduledAt) return;
     setLoading(true);
     try {
+      const selectedCase = cases.find((c) => c.id === Number(form.caseRequestId));
+      
+      // If the case is unassigned and we have a requested lawyer, assign them first!
+      if (selectedCase && !selectedCase.lawyerId && requestedLawyerId) {
+        await caseService.assignLawyer(selectedCase.id, { lawyerId: requestedLawyerId });
+      }
+
       const created = await appointmentService.book({
         caseRequestId: Number(form.caseRequestId),
         scheduledAt: new Date(form.scheduledAt).toISOString(),
@@ -166,7 +183,7 @@ function BookModal({ open, onClose, onSuccess }: {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function AppointmentsPage() {
+function AppointmentsPageContent() {
   const { user } = useAppSelector((s) => s.auth);
   const { toast } = useToast();
   const [appts, setAppts] = useState<AppointmentResponse[]>([]);
@@ -175,6 +192,15 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const searchParams = useSearchParams();
+  const requestedLawyerId = searchParams.get("lawyerId") ? Number(searchParams.get("lawyerId")) : null;
+
+  useEffect(() => {
+    if (requestedLawyerId) {
+      setModalOpen(true);
+    }
+  }, [requestedLawyerId]);
 
   const fetchAppts = async (p: number) => {
     setLoading(true);
@@ -329,7 +355,16 @@ export default function AppointmentsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSuccess={(a) => setAppts((prev) => [a, ...prev])}
+        requestedLawyerId={requestedLawyerId}
       />
     </div>
+  );
+}
+
+export default function AppointmentsPage() {
+  return (
+    <Suspense fallback={<div className="py-16 text-center"><PageSpinner /></div>}>
+      <AppointmentsPageContent />
+    </Suspense>
   );
 }

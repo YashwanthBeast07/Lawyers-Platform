@@ -161,7 +161,7 @@ export default function LawyerProfilePage() {
               </div>
               
               {isAuthenticated ? (
-                <Link href="/appointments" className="block text-center bg-[#C9A84C] text-[#0D1B2A] px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm">
+                <Link href={`/appointments?lawyerId=${lawyer.id}`} className="block text-center bg-[#C9A84C] text-[#0D1B2A] px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm">
                   Request Consultation
                 </Link>
               ) : (
