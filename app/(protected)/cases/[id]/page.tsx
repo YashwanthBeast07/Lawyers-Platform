@@ -264,18 +264,19 @@ export default function CaseDetailPage() {
 
   const handleUpdateFee = async (e: FormEvent) => {
     e.preventDefault();
-    if (!caseData || !feeInput || isNaN(Number(feeInput))) return;
+    const amount = Number(feeInput);
+    if (!caseData || !feeInput || isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid fee amount greater than 0.");
+      return;
+    }
     setUpdatingFee(true);
     try {
-      const updated = await caseService.updateStatus(caseData.id, {
-        status: caseData.status,
-      });
-      // The user updates status endpoint with fee mapped
-      const mockUpdated = { ...caseData, quotedAmount: Number(feeInput) };
-      setCaseData(mockUpdated);
-      toast.success("Case consultation fee updated successfully!");
-    } catch {
-      toast.error("Failed to update case fee.");
+      const updated = await caseService.updateFee(caseData.id, amount);
+      setCaseData(updated);
+      toast.success(`Consultation fee set to ₹${amount.toLocaleString("en-IN")} — client has been notified.`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to update case fee.";
+      toast.error(msg);
     } finally {
       setUpdatingFee(false);
     }

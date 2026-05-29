@@ -81,9 +81,11 @@ export default function DashboardPage() {
     if (!user) return;
     setClaimingId(caseId);
     try {
-      await caseService.assignLawyer(caseId, { lawyerId: user.id });
-      toast.success("Case claimed successfully!");
-      await fetchAll();
+      const claimed = await caseService.claimCase(caseId);
+      toast.success(`Case "${claimed.title}" claimed successfully!`);
+      // Instant optimistic update — remove from matched list, add to my cases
+      setMatchedCases((prev) => prev.filter((c) => c.id !== caseId));
+      setCases((prev) => [claimed, ...prev]);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to claim case.";
       toast.error(msg);

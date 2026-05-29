@@ -196,6 +196,16 @@ export const caseService = {
     return data.data;
   },
 
+  async claimCase(id: number): Promise<CaseResponse> {
+    const { data } = await api.post<ApiResponse<CaseResponse>>(`/cases/${id}/claim`);
+    return data.data;
+  },
+
+  async updateFee(id: number, quotedAmount: number): Promise<CaseResponse> {
+    const { data } = await api.patch<ApiResponse<CaseResponse>>(`/cases/${id}/fee`, { quotedAmount });
+    return data.data;
+  },
+
   async getAllCases(params: {
     status?: CaseStatus;
     page?: number;
