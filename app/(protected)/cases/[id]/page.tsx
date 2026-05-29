@@ -110,7 +110,7 @@ function PaymentPanel({ caseId, amount }: { caseId: number; amount?: number }) {
   };
 
   if (loading) return <div className="h-10 bg-slate-50 rounded-lg animate-pulse" />;
-  if (!payment || !user) return null;
+  if (!user || !amount) return null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
@@ -118,27 +118,70 @@ function PaymentPanel({ caseId, amount }: { caseId: number; amount?: number }) {
       <div className="space-y-3">
         <div className="flex justify-between items-center py-2 border-b border-slate-50">
           <span className="text-sm text-slate-500 font-medium">Amount</span>
-          <span className="font-bold text-[#0D1B2A]">₹{payment.amount.toLocaleString("en-IN")}</span>
+          <span className="font-bold text-[#0D1B2A]">
+            ₹{payment ? payment.amount.toLocaleString("en-IN") : amount.toLocaleString("en-IN")}
+          </span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-slate-50">
           <span className="text-sm text-slate-500 font-medium">Status</span>
-          <StatusPill status={payment.status} />
+          {payment ? (
+            <StatusPill status={payment.status} />
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              UNPAID
+            </span>
+          )}
         </div>
-        {payment.paidAt && (
+        {payment?.paidAt && (
           <div className="flex justify-between items-center py-2 border-b border-slate-50">
             <span className="text-sm text-slate-500 font-medium">Paid On</span>
             <span className="text-sm font-medium text-[#0D1B2A]">{formatDate(payment.paidAt)}</span>
           </div>
         )}
 
-        {user.role === "CLIENT" && payment.status === "FAILED" && payment.canRetry && (
-          <button
-            onClick={handleRetry}
-            disabled={paying}
-            className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50"
-          >
-            {paying ? "Opening checkout…" : `Retry Payment (${payment.retryCount}/${payment.maxRetries})`}
-          </button>
+        {/* Client-Specific Controls */}
+        {user.role === "CLIENT" && (
+          <>
+            {/* Case 1: Payment not yet initiated */}
+            {!payment && (
+              <button
+                onClick={handlePay}
+                disabled={paying}
+                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paying ? "Opening checkout…" : "Pay Consultation Fee"}
+              </button>
+            )}
+
+            {/* Case 2: Payment failed and can be retried */}
+            {payment && payment.status === "FAILED" && payment.canRetry && (
+              <button
+                onClick={handleRetry}
+                disabled={paying}
+                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paying ? "Opening checkout…" : `Retry Payment (${payment.retryCount}/${payment.maxRetries})`}
+              </button>
+            )}
+
+            {/* Case 3: Order is created or pending but checkout was not completed */}
+            {payment && (payment.status === "INITIATED" || payment.status === "CREATED" || payment.status === "PENDING") && (
+              <button
+                onClick={handleRetry}
+                disabled={paying}
+                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {paying ? "Opening checkout…" : "Complete Payment"}
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Lawyer/Admin Notice */}
+        {user.role !== "CLIENT" && !payment && (
+          <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 text-center leading-relaxed mt-4">
+            Awaiting consultation fee payment from the client.
+          </p>
         )}
       </div>
     </div>
