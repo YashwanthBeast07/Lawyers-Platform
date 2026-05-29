@@ -20,7 +20,7 @@ export default function LoginPage() {
     dispatch(clearError());
     const result = await dispatch(loginThunk({ email, password }));
     if (loginThunk.fulfilled.match(result)) {
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     }
   };
 

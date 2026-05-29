@@ -6,10 +6,10 @@ const PROTECTED_PREFIXES = ["/dashboard", "/cases", "/appointments", "/notificat
 // Auth routes — authenticated users should be redirected away
 const AUTH_PREFIXES = ["/login", "/register"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // The HttpOnly refresh_token cookie is the only session signal accessible in middleware
+  // The HttpOnly refresh_token cookie is the only session signal accessible in proxy
   const hasSession = request.cookies.has("refresh_token");
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));

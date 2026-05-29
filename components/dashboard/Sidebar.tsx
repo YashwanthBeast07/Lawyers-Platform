@@ -101,7 +101,7 @@ const BOTTOM_NAV: NavItem[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose, className }: { onClose?: () => void; className?: string }) {
   const pathname = usePathname();
   const user = useAppSelector((state) => state.auth.user);
 
@@ -112,10 +112,10 @@ export default function Sidebar() {
   const initials = fullName.substring(0, 2).toUpperCase();
 
   return (
-    <aside className="w-[220px] bg-[#0D1B2A] flex flex-col min-h-screen border-r border-white/5 flex-shrink-0">
+    <aside className={`w-[220px] bg-[#0D1B2A] flex flex-col min-h-screen border-r border-white/5 flex-shrink-0 ${className ?? ""}`}>
       {/* Logo */}
       <div className="px-5 h-14 flex items-center border-b border-white/5">
-        <Link href="/" className="text-lg font-bold text-white">
+        <Link href="/" className="text-lg font-bold text-white" onClick={onClose}>
           Go<span className="text-[#C9A84C]">Lawyers</span>
         </Link>
       </div>
@@ -129,6 +129,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all ${
                 active
                   ? "bg-[#C9A84C]/15 text-[#E8C97A]"
@@ -155,6 +156,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all ${
                 active ? "bg-[#C9A84C]/15 text-[#E8C97A]" : "text-white/50 hover:text-white/80 hover:bg-white/5"
               }`}
