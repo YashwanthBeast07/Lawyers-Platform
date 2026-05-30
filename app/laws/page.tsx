@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/landing/Footer";
 import api from "@/lib/axios";
 import type { ApiResponse, PagedResponse } from "@/lib/types";
+import { MapPin, Calendar as CalendarIcon, AlertTriangle } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,13 +43,15 @@ function LawCard({ law }: { law: LawDto }) {
       )}
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         {law.jurisdiction && (
-          <span className="text-[10px] text-[#94A3B8]">
-            📍 {law.jurisdiction}
+          <span className="text-[10px] text-[#94A3B8] flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5" />
+            {law.jurisdiction}
           </span>
         )}
         {law.effectiveDate && (
-          <span className="text-[10px] text-[#94A3B8]">
-            📅 Effective: {new Date(law.effectiveDate).getFullYear()}
+          <span className="text-[10px] text-[#94A3B8] flex items-center gap-1">
+            <CalendarIcon className="w-3.5 h-3.5" />
+            Effective: {new Date(law.effectiveDate).getFullYear()}
           </span>
         )}
       </div>
@@ -110,8 +113,9 @@ export default function LawsPage() {
             <p className="text-white/50 text-sm max-w-md leading-relaxed">
               Browse our database of Indian laws, acts, and regulations. For legal advice on how they apply to your situation, consult a verified advocate.
             </p>
-            <p className="text-[10px] text-white/30 mt-3 border-t border-white/10 pt-3 max-w-md leading-relaxed">
-              ⚠️ Disclaimer: Information here is for general awareness only and does not constitute legal advice.
+            <p className="text-[10px] text-white/30 mt-3 border-t border-white/10 pt-3 max-w-md leading-relaxed flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#C9A84C] shrink-0" />
+              <span>Disclaimer: Information here is for general awareness only and does not constitute legal advice.</span>
             </p>
           </div>
         </section>

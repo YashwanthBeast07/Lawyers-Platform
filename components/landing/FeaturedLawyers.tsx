@@ -5,46 +5,6 @@ import Link from "next/link";
 import { lawyerService } from "@/lib/services";
 import type { LawyerProfileResponse } from "@/lib/types";
 
-const PLACEHOLDERS = [
-  {
-    id: "directory",
-    fullName: "Adv. Ananya Sharma",
-    specialization: "Senior Criminal Counsel",
-    location: "New Delhi",
-    averageRating: 4.9,
-    totalReviews: 182,
-    experienceYears: 12,
-    hourlyRate: 3500,
-    initials: "AS",
-    color: "bg-[#0D1B2A]",
-  },
-  {
-    id: "directory",
-    fullName: "Adv. Prakash Mehta",
-    specialization: "Corporate Advocate",
-    location: "Mumbai",
-    averageRating: 4.6,
-    totalReviews: 97,
-    experienceYears: 8,
-    hourlyRate: 5000,
-    initials: "PM",
-    color: "bg-[#1A3050]",
-  },
-  {
-    id: "directory",
-    fullName: "Adv. Nisha Kapoor",
-    specialization: "Family Law Specialist",
-    location: "Bengaluru",
-    averageRating: 4.8,
-    totalReviews: 143,
-    experienceYears: 15,
-    hourlyRate: 2800,
-    initials: "NK",
-    color: "bg-[#C9A84C]",
-    textDark: true,
-  },
-];
-
 export default function FeaturedLawyers() {
   const [lawyers, setLawyers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +28,11 @@ export default function FeaturedLawyers() {
           });
           setLawyers(mapped);
         } else {
-          setLawyers(PLACEHOLDERS);
+          setLawyers([]);
         }
       })
       .catch(() => {
-        setLawyers(PLACEHOLDERS);
+        setLawyers([]);
       })
       .finally(() => {
         setLoading(false);
@@ -105,11 +65,36 @@ export default function FeaturedLawyers() {
               <div key={i} className="border border-[#E2E8F0] rounded-2xl h-80 skeleton animate-pulse" />
             ))}
           </div>
+        ) : lawyers.length === 0 ? (
+          <div
+            className="rounded-2xl p-8 md:p-12 text-center max-w-2xl mx-auto space-y-6"
+            style={{
+              background: "var(--navy)",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "var(--shadow-lg)",
+            }}
+          >
+            <div className="w-16 h-16 bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold tracking-tight">Verified Advocates Marketplace</h3>
+            <p className="text-sm text-white/60 leading-relaxed max-w-md mx-auto">
+              Every advocate registered on GoLawyers undergoes manual Bar Council credential checks before publication. Search or filter practice areas in our directory to find custom legal counsel.
+            </p>
+            <Link
+              href="/lawyers"
+              className="inline-flex items-center gap-2 bg-[#C9A84C] text-[#0D1B2A] font-bold text-sm px-6 py-3 rounded-xl hover:bg-[#E8C97A] transition-all"
+            >
+              Browse Lawyer Directory
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {lawyers.map((lawyer) => {
-              const isPlaceholder = lawyer.id === "directory";
-              const profileLink = isPlaceholder ? "/lawyers" : `/lawyers/${lawyer.id}`;
+              const profileLink = `/lawyers/${lawyer.id}`;
               const tags = lawyer.tags || (lawyer.specialization ? [lawyer.specialization] : ["General Practice"]);
 
               return (
@@ -161,7 +146,7 @@ export default function FeaturedLawyers() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-[#64748B] mb-4">
-                      <span>{lawyer.totalReviews ?? lawyer.reviews ?? 0} reviews</span>
+                      <span>{lawyer.totalReviews ?? 0} reviews</span>
                       <span>{lawyer.experienceYears ?? 0} yrs experience</span>
                     </div>
 

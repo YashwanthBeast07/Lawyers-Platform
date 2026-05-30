@@ -9,6 +9,7 @@ import { useToast } from "@/lib/toastContext";
 import type { CaseResponse, CaseStatus, PaymentResponse, CaseMessageResponse } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
 import { PageSpinner } from "@/components/ui/Spinner";
+import { FileText, User as UserIcon, Activity, CheckCircle, Lock } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -392,12 +393,12 @@ export default function CaseDetailPage() {
   };
   const nextStatuses = NEXT_STATUSES[caseData.status] ?? [];
 
-  const milestones: { label: string; status: CaseStatus; icon: string }[] = [
-    { label: "Submitted", status: "OPEN", icon: "📋" },
-    { label: "Assigned", status: "ASSIGNED", icon: "👤" },
-    { label: "In Progress", status: "IN_PROGRESS", icon: "⚡" },
-    { label: "Resolved", status: "RESOLVED", icon: "✅" },
-    { label: "Closed", status: "CLOSED", icon: "🔒" },
+  const milestones: { label: string; status: CaseStatus; icon: React.ComponentType<{ className?: string }> }[] = [
+    { label: "Submitted", status: "OPEN", icon: FileText },
+    { label: "Assigned", status: "ASSIGNED", icon: UserIcon },
+    { label: "In Progress", status: "IN_PROGRESS", icon: Activity },
+    { label: "Resolved", status: "RESOLVED", icon: CheckCircle },
+    { label: "Closed", status: "CLOSED", icon: Lock },
   ];
 
   const currentMilestoneIdx = milestones.findIndex((m) => m.status === caseData.status);
@@ -509,7 +510,7 @@ export default function CaseDetailPage() {
                           }
                     }
                   >
-                    {isCompleted ? "✓" : m.icon}
+                    {isCompleted ? "✓" : <m.icon className="w-4 h-4" />}
                   </div>
                   <div className="md:text-center">
                     <p

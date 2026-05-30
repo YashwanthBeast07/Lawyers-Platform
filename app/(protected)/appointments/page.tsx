@@ -10,6 +10,7 @@ import Pagination from "@/components/ui/Pagination";
 import Modal from "@/components/ui/Modal";
 import { PageSpinner } from "@/components/ui/Spinner";
 import { useSearchParams } from "next/navigation";
+import { Video, Building } from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +223,19 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
                       }
                 }
               >
-                {m === "ONLINE" ? "🎥 Online" : "🏢 In Person"}
+                <span className="flex items-center justify-center gap-2">
+                  {m === "ONLINE" ? (
+                    <>
+                      <Video className="w-4 h-4" />
+                      Online
+                    </>
+                  ) : (
+                    <>
+                      <Building className="w-4 h-4" />
+                      In Person
+                    </>
+                  )}
+                </span>
               </button>
             ))}
           </div>

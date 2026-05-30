@@ -239,7 +239,7 @@ export default function DashboardPage() {
             Overview
           </p>
           <h1 className="text-2xl lg:text-3xl font-black" style={{ color: "var(--text)" }}>
-            {getGreeting()}, {firstName} 👋
+            {getGreeting()}, {firstName}
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
             Here&apos;s what&apos;s happening with your legal matters today.
