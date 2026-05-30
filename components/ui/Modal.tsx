@@ -48,10 +48,10 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex justify-center p-4 md:p-10 animate-fade-in">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[#0D1B2A]/70 backdrop-blur-sm"
+        className="fixed inset-0 bg-[#0D1B2A]/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -61,7 +61,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
-        className={`relative w-full ${SIZE_MAP[size]} rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scale-in`}
+        className={`relative w-full ${SIZE_MAP[size]} rounded-2xl shadow-2xl flex flex-col my-auto max-h-[90vh] overflow-hidden animate-scale-in`}
         style={{
           background: "var(--surface)",
           boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.05)",

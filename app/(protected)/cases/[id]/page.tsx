@@ -648,10 +648,10 @@ export default function CaseDetailPage() {
                       </div>
                     </div>
                     <span
-                      className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 flex items-center gap-1"
                       style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }}
                     >
-                      🔒 Locked
+                      <Lock className="w-3 h-3" /> Locked
                     </span>
                   </div>
                 )}
