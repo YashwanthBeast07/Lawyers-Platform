@@ -166,6 +166,7 @@ export default function DashboardPage() {
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<number | null>(null);
+  const [proposingId, setProposingId] = useState<number | null>(null);
 
   const fetchAll = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -213,6 +214,19 @@ export default function DashboardPage() {
       toast.error(msg);
     } finally {
       setClaimingId(null);
+    }
+  };
+
+  const handleProposeConsultation = async (caseId: number) => {
+    setProposingId(caseId);
+    try {
+      await caseService.proposeConsultation(caseId);
+      toast.success("Consultation proposed successfully! Client has been notified.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? "Failed to propose consultation.";
+      toast.error(msg);
+    } finally {
+      setProposingId(null);
     }
   };
 
@@ -413,24 +427,34 @@ export default function DashboardPage() {
                     <span className="text-xs font-medium" style={{ color: "var(--text-light)" }}>
                       Filed {formatDate(c.createdAt)}
                     </span>
-                    <button
-                      disabled={claimingId === c.id}
-                      onClick={() => handleClaimCase(c.id)}
-                      className="btn-primary"
-                      style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}
-                    >
-                      {claimingId === c.id ? (
-                        <>
-                          <div
-                            className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full"
-                            style={{ borderColor: "var(--navy)", borderTopColor: "transparent", animation: "spin 0.75s linear infinite" }}
-                          />
-                          Claiming…
-                        </>
-                      ) : (
-                        "Accept Case"
-                      )}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        disabled={proposingId === c.id}
+                        onClick={() => handleProposeConsultation(c.id)}
+                        className="btn-secondary"
+                        style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}
+                      >
+                        {proposingId === c.id ? "Proposing…" : "Propose Consultation"}
+                      </button>
+                      <button
+                        disabled={claimingId === c.id}
+                        onClick={() => handleClaimCase(c.id)}
+                        className="btn-primary"
+                        style={{ height: "34px", fontSize: "12px", padding: "0 14px" }}
+                      >
+                        {claimingId === c.id ? (
+                          <>
+                            <div
+                              className="w-3.5 h-3.5 border-2 border-t-transparent rounded-full"
+                              style={{ borderColor: "var(--navy)", borderTopColor: "transparent", animation: "spin 0.75s linear infinite" }}
+                            />
+                            Claiming…
+                          </>
+                        ) : (
+                          "Accept Case"
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

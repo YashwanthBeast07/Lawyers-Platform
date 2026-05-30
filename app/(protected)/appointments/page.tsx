@@ -2,7 +2,7 @@
 
 import { useEffect, useState, FormEvent, Suspense } from "react";
 import { useAppSelector } from "@/lib/store/hooks";
-import { appointmentService, caseService, lawyerService } from "@/lib/services";
+import { appointmentService, caseService, lawyerService, paymentService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
 import type { AppointmentResponse, AppointmentStatus, CaseResponse, AppointmentMode, LawyerProfileResponse } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
@@ -87,13 +87,14 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
     if (!open) return;
     caseService.getMyCases(0, 50).then((d) => {
       const activeLawyerId = requestedLawyerId || (selectedLawyerId ? Number(selectedLawyerId) : null);
+      const activeStatuses = ["OPEN", "ASSIGNED", "IN_PROGRESS"];
       if (activeLawyerId) {
         setCases(d.content.filter((c) =>
-          c.lawyerId === activeLawyerId ||
-          (!c.lawyerId && ["OPEN", "ASSIGNED", "IN_PROGRESS"].includes(c.status))
+          activeStatuses.includes(c.status) &&
+          (c.lawyerId === activeLawyerId || !c.lawyerId)
         ));
       } else {
-        setCases(d.content.filter((c) => ["ASSIGNED", "IN_PROGRESS"].includes(c.status)));
+        setCases(d.content.filter((c) => activeStatuses.includes(c.status)));
       }
     });
   }, [open, requestedLawyerId, selectedLawyerId]);
@@ -155,12 +156,25 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
               <option value="">Choose a verified advocate</option>
               {lawyers.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.fullName} — {l.specialization || "General Practice"}
+                  {l.fullName} — {l.specialization || "General Practice"} (Consultation: ₹{l.hourlyRate ? Number(l.hourlyRate).toLocaleString("en-IN") : "0"})
                 </option>
               ))}
             </select>
           </FormField>
         )}
+
+        {(() => {
+          const activeId = requestedLawyerId || (selectedLawyerId ? Number(selectedLawyerId) : null);
+          const lawyer = lawyers.find(l => l.id === activeId);
+          const fee = lawyer ? lawyer.hourlyRate : null;
+          if (!fee) return null;
+          return (
+            <div className="rounded-xl p-3 flex items-center justify-between text-xs font-semibold" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)", color: "var(--gold-dark)" }}>
+              <span>Consultation Fee:</span>
+              <span className="font-bold text-sm">₹{Number(fee).toLocaleString("en-IN")}</span>
+            </div>
+          );
+        })()}
 
         <FormField
           label="Select Case"
@@ -288,13 +302,79 @@ function ApptCard({
   user,
   onUpdate,
   updating,
+  onPaymentSuccess,
 }: {
   a: AppointmentResponse;
   user: { role: string } | null;
   onUpdate: (id: number, status: AppointmentStatus) => void;
   updating: boolean;
+  onPaymentSuccess?: () => void;
 }) {
+  const { toast } = useToast();
+  const [paying, setPaying] = useState(false);
   const canUpdateStatus = user?.role === "LAWYER" || user?.role === "ADMIN";
+
+  const scheduledTime = new Date(a.scheduledAt).getTime();
+  const endTime = scheduledTime + a.durationMinutes * 60 * 1000;
+  const isTimeOver = Date.now() >= endTime;
+
+  const openCheckout = async (
+    orderId: string,
+    keyId: string,
+    amt: number,
+    currency: string
+  ) => {
+    const rzp = new (window as any).Razorpay({
+      key: keyId,
+      order_id: orderId,
+      amount: amt * 100,
+      currency,
+      name: "GoLawyers",
+      description: "Consultation Appointment Fee",
+      theme: { color: "#C9A84C" },
+      handler: async (response: any) => {
+        try {
+          await paymentService.verifyPayment({
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+          });
+          toast.success("Consultation fee payment successful!");
+          if (onPaymentSuccess) onPaymentSuccess();
+        } catch {
+          toast.error("Payment verification failed.");
+        }
+        setPaying(false);
+      },
+      modal: { ondismiss: () => setPaying(false) },
+    });
+    rzp.open();
+  };
+
+  const handlePay = async () => {
+    if (!a.consultationFee) return;
+    setPaying(true);
+    try {
+      if (!(window as any).Razorpay) {
+        await new Promise<void>((resolve) => {
+          const s = document.createElement("script");
+          s.src = "https://checkout.razorpay.com/v1/checkout.js";
+          s.onload = () => resolve();
+          document.head.appendChild(s);
+        });
+      }
+      const order = await paymentService.createOrder({
+        caseRequestId: a.caseRequestId,
+        amount: a.consultationFee,
+        appointmentId: a.id,
+      });
+      await openCheckout(order.razorpayOrderId, order.razorpayKeyId, order.amount, order.currency);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? "Failed to initiate payment.";
+      toast.error(msg);
+      setPaying(false);
+    }
+  };
 
   return (
     <div
@@ -349,6 +429,17 @@ function ApptCard({
               >
                 {a.mode?.replace(/_/g, " ")}
               </span>
+              {a.consultationFee !== undefined && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.879A1.5 1.5 0 0013 15v-1a1.5 1.5 0 011-1.5M12 6v12" />
+                  </svg>
+                  Consultation Fee: ₹{Number(a.consultationFee).toLocaleString("en-IN")} · 
+                  <span className={`font-bold ${a.isPaid ? "text-green-600" : "text-amber-600"}`}>
+                    {a.isPaid ? "Paid ✓" : "Unpaid"}
+                  </span>
+                </span>
+              )}
             </div>
             {a.notes && (
               <p
@@ -363,18 +454,19 @@ function ApptCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {canUpdateStatus && a.status === "PENDING" && (
-            <>
+          {canUpdateStatus && a.status === "CONFIRMED" && (
+            isTimeOver ? (
               <button
-                onClick={() => onUpdate(a.id, "CONFIRMED")}
+                onClick={() => onUpdate(a.id, "COMPLETED")}
                 disabled={updating}
                 className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
-                style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}
-                onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#D1FAE5")}
-                onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#ECFDF5")}
+                style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}
+                onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#DBEAFE")}
+                onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#EFF6FF")}
               >
-                ✓ Confirm
+                Mark Complete
               </button>
+            ) : (
               <button
                 onClick={() => onUpdate(a.id, "CANCELLED")}
                 disabled={updating}
@@ -383,23 +475,23 @@ function ApptCard({
                 onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#FEE2E2")}
                 onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#FEF2F2")}
               >
-                ✕ Cancel
+                ✕ Cancel Consultation
               </button>
-            </>
+            )
           )}
-          {canUpdateStatus && a.status === "CONFIRMED" && (
+          {user?.role === "CLIENT" && !a.isPaid && a.consultationFee && ["PENDING", "CONFIRMED"].includes(a.status) && (
             <button
-              onClick={() => onUpdate(a.id, "COMPLETED")}
-              disabled={updating}
+              onClick={handlePay}
+              disabled={paying}
               className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
-              style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}
-              onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#DBEAFE")}
-              onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#EFF6FF")}
+              style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)", border: "1px solid rgba(201,168,76,0.22)" }}
+              onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(201,168,76,0.2)")}
+              onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(201,168,76,0.12)")}
             >
-              Mark Complete
+              {paying ? "Paying…" : "Pay Fee"}
             </button>
           )}
-          {user?.role === "CLIENT" && a.status === "PENDING" && (
+          {user?.role === "CLIENT" && ["PENDING", "CONFIRMED"].includes(a.status) && !isTimeOver && (
             <button
               onClick={() => onUpdate(a.id, "CANCELLED")}
               disabled={updating}
@@ -554,6 +646,7 @@ function AppointmentsPageContent() {
                 user={user}
                 onUpdate={handleStatusUpdate}
                 updating={updatingId === a.id}
+                onPaymentSuccess={() => fetchAppts(page, true)}
               />
             ))}
           </div>

@@ -162,6 +162,8 @@ export interface AppointmentResponse {
   status: AppointmentStatus;
   notes?: string;
   createdAt: string;
+  consultationFee?: number;
+  isPaid?: boolean;
 }
 
 export interface AppointmentRequest {
@@ -246,6 +248,7 @@ export interface OrderResponse {
 export interface CreateOrderRequest {
   caseRequestId: number;
   amount: number;
+  appointmentId?: number;
 }
 
 export interface PaymentVerificationRequest {

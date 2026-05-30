@@ -385,7 +385,7 @@ export default function CaseDetailPage() {
   const canUpdateStatus = user?.role === "LAWYER" || user?.role === "ADMIN";
   const NEXT_STATUSES: Record<string, CaseStatus[]> = {
     OPEN: [],
-    ASSIGNED: ["IN_PROGRESS", "CANCELLED"],
+    ASSIGNED: user?.role === "CLIENT" ? ["IN_PROGRESS", "CANCELLED"] : ["CANCELLED"],
     IN_PROGRESS: ["RESOLVED", "CANCELLED"],
     RESOLVED: ["CLOSED"],
     CLOSED: [],
@@ -545,6 +545,35 @@ export default function CaseDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Client Price Approval Panel */}
+      {user?.role === "CLIENT" && caseData.status === "ASSIGNED" && caseData.quotedAmount && (
+        <div
+          className="rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-scale-in"
+          style={{
+            background: "linear-gradient(135deg, rgba(201,168,76,0.1) 0%, rgba(201,168,76,0.04) 100%)",
+            border: "1.5px solid rgba(201,168,76,0.25)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          <div className="space-y-1">
+            <h3 className="font-bold text-base" style={{ color: "var(--text)" }}>
+              Advocate Quoted Consultation Fee
+            </h3>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              Advocate {caseData.lawyerName} has quoted a fee of <span className="font-bold" style={{ color: "var(--text)" }}>₹{Number(caseData.quotedAmount).toLocaleString("en-IN")}</span> for your case. Please review the proposal. Approving this fee will activate the secure case message board and officially start work on your case.
+            </p>
+          </div>
+          <button
+            onClick={() => handleStatusUpdate("IN_PROGRESS")}
+            disabled={updatingStatus}
+            className="btn-primary flex-shrink-0 self-start md:self-auto"
+            style={{ minWidth: "180px" }}
+          >
+            {updatingStatus ? "Approving…" : "Approve Fee & Begin Case"}
+          </button>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -201,6 +201,11 @@ export const caseService = {
     return data.data;
   },
 
+  async proposeConsultation(id: number): Promise<CaseResponse> {
+    const { data } = await api.post<ApiResponse<CaseResponse>>(`/cases/${id}/propose`);
+    return data.data;
+  },
+
   async updateFee(id: number, quotedAmount: number): Promise<CaseResponse> {
     const { data } = await api.patch<ApiResponse<CaseResponse>>(`/cases/${id}/fee`, { quotedAmount });
     return data.data;
