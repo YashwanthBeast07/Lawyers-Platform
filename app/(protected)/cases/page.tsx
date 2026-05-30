@@ -155,18 +155,24 @@ export default function CasesPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const fetchCases = async (p: number) => {
-    setLoading(true);
+  const fetchCases = async (p: number, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await caseService.getMyCases(p, 10);
       setCases(data.content);
       setTotalPages(data.totalPages);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchCases(page); }, [page]);
+  useEffect(() => {
+    fetchCases(page);
+    const interval = setInterval(() => {
+      fetchCases(page, true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [page]);
 
   const handleNewCase = (c: CaseResponse) => {
     setCases((prev) => [c, ...prev]);

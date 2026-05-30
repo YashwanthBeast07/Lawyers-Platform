@@ -67,18 +67,24 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
 
-  const fetchNotifications = async (p: number) => {
-    setLoading(true);
+  const fetchNotifications = async (p: number, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await notificationService.getMyNotifications(p, 20);
       setNotifications(data.content);
       setTotalPages(data.totalPages);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchNotifications(page); }, [page]);
+  useEffect(() => {
+    fetchNotifications(page);
+    const interval = setInterval(() => {
+      fetchNotifications(page, true);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [page]);
 
   const handleMarkAllRead = async () => {
     setMarking(true);

@@ -260,19 +260,22 @@ export default function CaseDetailPage() {
   const [updatingFee, setUpdatingFee] = useState(false);
   const [isCaseFeePaid, setIsCaseFeePaid] = useState(false);
 
-  const fetchCase = async () => {
+  const fetchCase = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const cData = await caseService.getById(Number(id));
       setCaseData(cData);
-      setFeeInput(cData.quotedAmount ? cData.quotedAmount.toString() : "");
+      if (!silent) {
+        setFeeInput(cData.quotedAmount ? cData.quotedAmount.toString() : "");
+      }
       const paid = await paymentService.getByCase(Number(id))
         .then((p) => p.status === "SUCCESS")
         .catch(() => false);
       setIsCaseFeePaid(paid);
     } catch {
-      router.push("/cases");
+      if (!silent) router.push("/cases");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -286,6 +289,11 @@ export default function CaseDetailPage() {
   useEffect(() => {
     fetchCase();
     fetchMessages();
+    const interval = setInterval(() => {
+      fetchCase(true);
+      fetchMessages();
+    }, 4000);
+    return () => clearInterval(interval);
   }, [id]);
 
   const handleStatusUpdate = async (status: CaseStatus) => {

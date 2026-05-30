@@ -167,7 +167,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<number | null>(null);
 
-  const fetchAll = async () => {
+  const fetchAll = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [casesData, apptsData, unreadData] = await Promise.all([
         caseService.getMyCases(0, 5),
@@ -185,12 +186,18 @@ export default function DashboardPage() {
     } catch {
       // silently fail
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) fetchAll();
+    if (user) {
+      fetchAll();
+      const interval = setInterval(() => {
+        fetchAll(true);
+      }, 8000);
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   const handleClaimCase = async (caseId: number) => {

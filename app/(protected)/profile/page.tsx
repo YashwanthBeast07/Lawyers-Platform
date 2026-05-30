@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { userService } from "@/lib/services";
 import { fetchProfileThunk } from "@/lib/store/authSlice";
@@ -26,10 +26,20 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    fullName: user?.fullName || "",
-    phone: user?.phone || "",
-    specialization: user?.specialization || "",
+    fullName: "",
+    phone: "",
+    specialization: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        specialization: user.specialization || "",
+      });
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

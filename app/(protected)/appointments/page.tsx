@@ -427,18 +427,24 @@ function AppointmentsPageContent() {
     if (requestedLawyerId) setModalOpen(true);
   }, [requestedLawyerId]);
 
-  const fetchAppts = async (p: number) => {
-    setLoading(true);
+  const fetchAppts = async (p: number, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await appointmentService.getMyAppointments(p, 10);
       setAppts(data.content);
       setTotalPages(data.totalPages);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchAppts(page); }, [page]);
+  useEffect(() => {
+    fetchAppts(page);
+    const interval = setInterval(() => {
+      fetchAppts(page, true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [page]);
 
   const handleStatusUpdate = async (id: number, status: AppointmentStatus) => {
     setUpdatingId(id);
