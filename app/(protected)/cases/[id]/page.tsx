@@ -586,63 +586,77 @@ export default function CaseDetailPage() {
       </div>
 
       {/* Case Messages / Follow-Up Chat Panel */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-        <SectionHeader 
-          title="Case Discussion & Follow-Ups" 
-          subtitle="Send questions, requests, or update follow-up messages about this case." 
-        />
-        
-        {/* Messages List Area */}
-        <div className="border border-slate-50 rounded-xl p-4 bg-[#FAFAF8] max-h-[350px] overflow-y-auto space-y-4 flex flex-col">
-          {messages.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 text-xs font-semibold italic">
-              No follow-up messages exchanged yet. Use the chat window to coordinate.
-            </div>
-          ) : (
-            messages.map((m) => {
-              const isMe = m.senderName === user?.fullName;
-              return (
-                <div key={m.id} className={`flex flex-col space-y-1 max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
-                  <div className="flex items-center gap-1.5 px-1">
-                    <span className="text-[10px] font-bold text-[#0D1B2A]">{m.senderName}</span>
-                    <span className={`text-[9px] font-semibold uppercase px-1 rounded-sm ${
-                      m.senderRole === "CLIENT" ? "bg-blue-50 text-blue-600" : "bg-[#C9A84C]/10 text-[#C9A84C]"
-                    }`}>{m.senderRole}</span>
-                  </div>
-                  <div className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm font-medium ${
-                    isMe 
-                      ? "bg-[#0D1B2A] text-white rounded-tr-none" 
-                      : "bg-white text-[#0d1b2a] border border-slate-100 rounded-tl-none"
-                  }`}>
-                    {m.message}
-                  </div>
-                  <span className="text-[9px] text-slate-400 px-1.5">{formatDate(m.createdAt)} • {formatTime(m.createdAt)}</span>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Input area */}
-        <form onSubmit={handleSendMessage} className="flex gap-3">
-          <input
-            type="text"
-            required
-            disabled={sendingMsg}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a follow-up message..."
-            className="flex-1 h-11 border border-slate-200 focus:border-[#C9A84C] outline-none rounded-xl px-4 text-sm text-[#0D1B2A] transition-colors"
+      {caseData.lawyerId ? (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <SectionHeader 
+            title="Case Discussion & Follow-Ups" 
+            subtitle="Send questions, requests, or update follow-up messages about this case." 
           />
-          <button
-            type="submit"
-            disabled={sendingMsg || !newMessage.trim()}
-            className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#0D1B2A] px-6 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center shrink-0"
-          >
-            {sendingMsg ? "Sending..." : "Send Msg"}
-          </button>
-        </form>
-      </div>
+          
+          {/* Messages List Area */}
+          <div className="border border-slate-50 rounded-xl p-4 bg-[#FAFAF8] max-h-[350px] overflow-y-auto space-y-4 flex flex-col">
+            {messages.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-xs font-semibold italic">
+                No follow-up messages exchanged yet. Use the chat window to coordinate.
+              </div>
+            ) : (
+              messages.map((m) => {
+                const isMe = m.senderName === user?.fullName;
+                return (
+                  <div key={m.id} className={`flex flex-col space-y-1 max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
+                    <div className="flex items-center gap-1.5 px-1">
+                      <span className="text-[10px] font-bold text-[#0D1B2A]">{m.senderName}</span>
+                      <span className={`text-[9px] font-semibold uppercase px-1 rounded-sm ${
+                        m.senderRole === "CLIENT" ? "bg-blue-50 text-blue-600" : "bg-[#C9A84C]/10 text-[#C9A84C]"
+                      }`}>{m.senderRole}</span>
+                    </div>
+                    <div className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm font-medium ${
+                      isMe 
+                        ? "bg-[#0D1B2A] text-white rounded-tr-none" 
+                        : "bg-white text-[#0d1b2a] border border-slate-100 rounded-tl-none"
+                    }`}>
+                      {m.message}
+                    </div>
+                    <span className="text-[9px] text-slate-400 px-1.5">{formatDate(m.createdAt)} • {formatTime(m.createdAt)}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Input area */}
+          <form onSubmit={handleSendMessage} className="flex gap-3">
+            <input
+              type="text"
+              required
+              disabled={sendingMsg}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a follow-up message..."
+              className="flex-1 h-11 border border-slate-200 focus:border-[#C9A84C] outline-none rounded-xl px-4 text-sm text-[#0D1B2A] transition-colors"
+            />
+            <button
+              type="submit"
+              disabled={sendingMsg || !newMessage.trim()}
+              className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#0D1B2A] px-6 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center shrink-0"
+            >
+              {sendingMsg ? "Sending..." : "Send Msg"}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 text-center space-y-3">
+          <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 18c-.387 0-.773-.054-1.15-.163a.502.502 0 01-.302-.679l.018-.043a5.975 5.975 0 014.288-4.086 9.765 9.765 0 01-.118-1.53c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-bold text-[#0D1B2A]">Secure Discussion Board Inactive</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+            The secure case message board will become active once an advocate accepts this case. You will then be able to coordinate and chat directly with your lawyer.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

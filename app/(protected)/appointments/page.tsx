@@ -2,9 +2,9 @@
 
 import { useEffect, useState, FormEvent, Suspense } from "react";
 import { useAppSelector } from "@/lib/store/hooks";
-import { appointmentService, caseService } from "@/lib/services";
+import { appointmentService, caseService, lawyerService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
-import type { AppointmentResponse, AppointmentStatus, CaseResponse, AppointmentMode } from "@/lib/types";
+import type { AppointmentResponse, AppointmentStatus, CaseResponse, AppointmentMode, LawyerProfileResponse } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Pagination from "@/components/ui/Pagination";
@@ -32,6 +32,8 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [cases, setCases] = useState<CaseResponse[]>([]);
+  const [lawyers, setLawyers] = useState<LawyerProfileResponse[]>([]);
+  const [selectedLawyerId, setSelectedLawyerId] = useState<number | "">("");
   const [form, setForm] = useState({
     caseRequestId: "",
     scheduledAt: "",
@@ -40,31 +42,48 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
     notes: "",
   });
 
+  // Fetch all verified lawyers if requestedLawyerId is not passed
+  useEffect(() => {
+    if (!open) return;
+    if (!requestedLawyerId) {
+      lawyerService.getVerifiedLawyers(undefined, 0, 50).then((d) => {
+        setLawyers(d.content);
+      }).catch(() => {});
+    }
+  }, [open, requestedLawyerId]);
+
   useEffect(() => {
     if (!open) return;
     caseService.getMyCases(0, 50).then((d) => {
-      if (requestedLawyerId) {
+      const activeLawyerId = requestedLawyerId || (selectedLawyerId ? Number(selectedLawyerId) : null);
+      if (activeLawyerId) {
         // Show cases assigned to this lawyer OR unassigned cases
         setCases(d.content.filter((c) => 
-          c.lawyerId === requestedLawyerId || 
+          c.lawyerId === activeLawyerId || 
           (!c.lawyerId && ["OPEN", "ASSIGNED", "IN_PROGRESS"].includes(c.status))
         ));
       } else {
+        // Show only assigned/in progress cases if no specific lawyer selected
         setCases(d.content.filter((c) => ["ASSIGNED", "IN_PROGRESS"].includes(c.status)));
       }
     });
-  }, [open, requestedLawyerId]);
+  }, [open, requestedLawyerId, selectedLawyerId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.caseRequestId || !form.scheduledAt) return;
+    const activeLawyerId = requestedLawyerId || (selectedLawyerId ? Number(selectedLawyerId) : null);
+    if (!activeLawyerId) {
+      toast.error("Please select a lawyer first.");
+      return;
+    }
     setLoading(true);
     try {
       const selectedCase = cases.find((c) => c.id === Number(form.caseRequestId));
       
       // If the case is unassigned and we have a requested lawyer, assign them first!
-      if (selectedCase && !selectedCase.lawyerId && requestedLawyerId) {
-        await caseService.assignLawyer(selectedCase.id, { lawyerId: requestedLawyerId });
+      if (selectedCase && !selectedCase.lawyerId) {
+        await caseService.assignLawyer(selectedCase.id, { lawyerId: activeLawyerId });
       }
 
       const created = await appointmentService.book({
@@ -90,8 +109,28 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
   return (
     <Modal open={open} onClose={onClose} title="Book Appointment" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!requestedLawyerId && (
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5 font-bold">Select Lawyer</label>
+            <select
+              required
+              value={selectedLawyerId}
+              onChange={(e) => {
+                setSelectedLawyerId(e.target.value ? Number(e.target.value) : "");
+                setForm((f) => ({ ...f, caseRequestId: "" })); // clear case selection on lawyer change
+              }}
+              className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] bg-white transition-colors"
+            >
+              <option value="">Choose a verified lawyer</option>
+              {lawyers.map((l) => (
+                <option key={l.id} value={l.id}>{l.fullName} ({l.specialization || "General"})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Case</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5 font-bold">Select Case</label>
           <select
             required
             value={form.caseRequestId}
@@ -104,7 +143,7 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
             ))}
           </select>
           {cases.length === 0 && (
-            <p className="text-xs text-[#94A3B8] mt-1">No assigned cases available. A lawyer must be assigned first.</p>
+            <p className="text-xs text-[#94A3B8] mt-1">No assigned or open cases available for the selected lawyer.</p>
           )}
         </div>
 
