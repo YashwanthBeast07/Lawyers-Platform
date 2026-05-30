@@ -42,7 +42,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <SectionHeader 
           eyebrow="Overview"
-          title={`${getGreeting()}, ${user?.fullName || "Admin"} 👋`}
+          title={`${getGreeting()}, ${user?.fullName || "Admin"}`}
           subtitle="Here's what's happening across the platform today."
         />
       </div>

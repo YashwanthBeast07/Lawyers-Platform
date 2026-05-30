@@ -61,7 +61,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
-        className={`relative w-full ${SIZE_MAP[size]} rounded-2xl shadow-2xl overflow-hidden animate-scale-in`}
+        className={`relative w-full ${SIZE_MAP[size]} rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scale-in`}
         style={{
           background: "var(--surface)",
           boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.05)",
@@ -121,7 +121,7 @@ export default function Modal({
         )}
 
         {/* Body */}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );
