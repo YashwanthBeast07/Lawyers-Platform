@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, ReactNode, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   open: boolean;
@@ -26,6 +27,11 @@ export default function Modal({
   children,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close on Escape key
   useEffect(() => {
@@ -39,15 +45,16 @@ export default function Modal({
 
   // Lock body scroll when open
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 overflow-y-auto flex justify-center p-4 md:p-10 animate-fade-in">
       {/* Backdrop */}
       <div
@@ -69,14 +76,14 @@ export default function Modal({
       >
         {/* Decorative top stripe */}
         <div
-          className="h-1 w-full"
+          className="h-1 w-full flex-shrink-0"
           style={{ background: "linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light))" }}
         />
 
         {/* Header */}
         {title && (
           <div
-            className="flex items-start justify-between px-6 pt-5 pb-4"
+            className="flex items-start justify-between px-6 pt-5 pb-4 flex-shrink-0"
             style={{ borderBottom: "1px solid var(--border-light)" }}
           >
             <div>
@@ -121,8 +128,9 @@ export default function Modal({
         )}
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto flex-1 min-h-0">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
