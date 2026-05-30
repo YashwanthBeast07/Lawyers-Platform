@@ -355,12 +355,15 @@ export default function CaseDetailPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `OrderCopy_Case_${caseData.id}.pdf`);
+      const filename = isCaseFeePaid || user?.role !== "CLIENT"
+        ? `OrderCopy_Case_${caseData.id}.pdf`
+        : `Masked_Preview_Case_${caseData.id}.pdf`;
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
     } catch {
-      toast.error("Failed to download. Ensure payment is completed.");
+      toast.error("Failed to download order copy.");
     }
   };
 
@@ -655,12 +658,12 @@ export default function CaseDetailPage() {
                   </div>
                 ) : (
                   <div
-                    className="rounded-xl p-4 flex items-center justify-between gap-4"
+                    className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: "#FEF3C7", color: "#B45309" }}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -676,12 +679,21 @@ export default function CaseDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <span
-                      className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 flex items-center gap-1"
-                      style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }}
-                    >
-                      <Lock className="w-3 h-3" /> Locked
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+                      <button
+                        onClick={handleDownloadOrderCopy}
+                        className="btn-secondary"
+                        style={{ height: "32px", fontSize: "11px", padding: "0 12px" }}
+                      >
+                        Preview Masked
+                      </button>
+                      <span
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+                        style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }}
+                      >
+                        <Lock className="w-3 h-3" /> Locked
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -747,29 +759,41 @@ export default function CaseDetailPage() {
                   >
                     Consultation Fee (₹)
                   </label>
-                  <form onSubmit={handleUpdateFee} className="flex gap-3">
-                    <input
-                      type="number"
-                      required
-                      value={feeInput}
-                      onChange={(e) => setFeeInput(e.target.value)}
-                      placeholder="e.g. 15000"
-                      className="input-field flex-1"
-                      min="1"
-                    />
-                    <button
-                      type="submit"
-                      disabled={updatingFee}
-                      className="btn-secondary flex-shrink-0"
-                      style={{ height: "44px", padding: "0 20px", fontSize: "13px" }}
+                  {caseData.status === "ASSIGNED" ? (
+                    <form onSubmit={handleUpdateFee} className="flex gap-3">
+                      <input
+                        type="number"
+                        required
+                        value={feeInput}
+                        onChange={(e) => setFeeInput(e.target.value)}
+                        placeholder="e.g. 15000"
+                        className="input-field flex-1"
+                        min="1"
+                      />
+                      <button
+                        type="submit"
+                        disabled={updatingFee}
+                        className="btn-secondary flex-shrink-0"
+                        style={{ height: "44px", padding: "0 20px", fontSize: "13px" }}
+                      >
+                        {updatingFee ? "Saving…" : "Set Fee"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div
+                      className="rounded-xl p-3 flex items-center gap-2"
+                      style={{ background: "var(--bg)", border: "1px solid var(--border-light)" }}
                     >
-                      {updatingFee ? "Saving…" : "Set Fee"}
-                    </button>
-                  </form>
+                      <Lock className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-light)" }} />
+                      <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                        Consultation fee is locked at ₹{Number(caseData.quotedAmount || 0).toLocaleString("en-IN")} and cannot be modified.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* PDF Upload */}
-                {(caseData.status === "IN_PROGRESS" || caseData.status === "RESOLVED") && (
+                {caseData.status === "RESOLVED" && (
                   <div
                     className="pt-5"
                     style={{ borderTop: "1px solid var(--border-light)" }}
