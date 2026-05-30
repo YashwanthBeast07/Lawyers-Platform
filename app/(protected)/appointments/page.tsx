@@ -106,6 +106,12 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
       toast.error("Please select a lawyer first.");
       return;
     }
+    const selectedTime = new Date(form.scheduledAt).getTime();
+    const minAllowedTime = Date.now() + 30 * 60000;
+    if (selectedTime < minAllowedTime) {
+      toast.error("Appointments must be scheduled at least 30 minutes in the future.");
+      return;
+    }
     setLoading(true);
     try {
       const selectedCase = cases.find((c) => c.id === Number(form.caseRequestId));

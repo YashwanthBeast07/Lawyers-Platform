@@ -788,30 +788,50 @@ export default function CaseDetailPage() {
                       Advance Case Status
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {nextStatuses.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusUpdate(s)}
-                          disabled={updatingStatus}
-                          className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${
-                            s === "CANCELLED"
-                              ? ""
-                              : "btn-primary"
-                          }`}
-                          style={
-                            s === "CANCELLED"
-                              ? {
-                                  background: "#FEF2F2",
-                                  color: "#B91C1C",
-                                  border: "1px solid #FECACA",
-                                  height: "auto",
-                                }
-                              : {}
-                          }
-                        >
-                          {updatingStatus ? "Updating…" : `Mark as ${s.replace(/_/g, " ")}`}
-                        </button>
-                      ))}
+                      {nextStatuses.map((s) => {
+                        const isCloseAction = s === "CLOSED";
+                        const isCloseDisabled = isCloseAction && !isCaseFeePaid;
+
+                        return (
+                          <div key={s} className="flex flex-col gap-1.5 items-start">
+                            <button
+                              onClick={() => handleStatusUpdate(s)}
+                              disabled={updatingStatus || isCloseDisabled}
+                              className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${
+                                s === "CANCELLED"
+                                  ? ""
+                                  : "btn-primary"
+                              }`}
+                              style={
+                                s === "CANCELLED"
+                                  ? {
+                                      background: "#FEF2F2",
+                                      color: "#B91C1C",
+                                      border: "1px solid #FECACA",
+                                      height: "auto",
+                                    }
+                                  : isCloseDisabled
+                                  ? {
+                                      background: "var(--bg)",
+                                      color: "var(--text-light)",
+                                      border: "1.5px solid var(--border)",
+                                      cursor: "not-allowed",
+                                      opacity: 0.6,
+                                      height: "auto",
+                                    }
+                                  : {}
+                              }
+                            >
+                              {updatingStatus ? "Updating…" : `Mark as ${s.replace(/_/g, " ")}`}
+                            </button>
+                            {isCloseDisabled && (
+                              <p className="text-[10px] font-bold text-red-500 max-w-[200px] leading-relaxed">
+                                Client must pay the consultation fee before closing this case.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
