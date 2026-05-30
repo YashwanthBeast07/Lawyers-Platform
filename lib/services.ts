@@ -111,7 +111,7 @@ export const lawyerService = {
     size = 10
   ): Promise<PagedResponse<LawyerProfileResponse>> {
     const { data } = await api.get<ApiResponse<PagedResponse<LawyerProfileResponse>>>(
-      "/users/lawyers",
+      "/lawyers",
       {
         params: { specialization, page, size },
       }
