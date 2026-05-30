@@ -29,9 +29,12 @@ export default function LoginPage() {
     "https://api.golawyers.online/api/oauth2/authorization/google";
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7] flex">
+    <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
       {/* ── Left Panel ──────────────────────────────────────────────────── */}
-      <div className="hidden lg:flex flex-col justify-between w-[46%] bg-[#0D1B2A] px-14 py-12 relative overflow-hidden">
+      <div
+        className="hidden lg:flex flex-col justify-between w-[46%] px-14 py-12 relative overflow-hidden"
+        style={{ background: "var(--navy)" }}
+      >
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
@@ -165,7 +168,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-                className="w-full h-11 border border-[#E2E8F0] focus:border-[#0D1B2A] focus:ring-0 outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] placeholder:text-[#CBD5E1] transition-colors bg-white"
+                className="input-field"
               />
             </div>
 
@@ -195,7 +198,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full h-11 border border-[#E2E8F0] focus:border-[#0D1B2A] outline-none rounded-lg px-3.5 pr-10 text-sm text-[#0D1B2A] placeholder:text-[#CBD5E1] transition-colors bg-white"
+                  className="input-field pr-10"
                 />
                 <button
                   type="button"
@@ -222,7 +225,7 @@ export default function LoginPage() {
               id="btn-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-[#0D1B2A] hover:bg-[#1A3050] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors mt-2 flex items-center justify-center gap-2"
+              className="btn-secondary w-full mt-2"
             >
               {loading ? (
                 <>

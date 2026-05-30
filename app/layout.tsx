@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-[#F1F5F9]">
         <StoreProvider>
           <ToastProvider>
             {children}
@@ -28,3 +28,4 @@ export default function RootLayout({
     </html>
   );
 }
+

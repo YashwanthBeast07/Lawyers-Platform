@@ -1,37 +1,66 @@
 type Status = string;
 
-const STATUS_MAP: Record<string, string> = {
+interface StatusConfig {
+  dot: string;
+  bg: string;
+  text: string;
+  border: string;
+  label?: string;
+}
+
+const STATUS_MAP: Record<string, StatusConfig> = {
   // Case Statuses
-  OPEN: "bg-blue-50 text-blue-700 border border-blue-100",
-  ASSIGNED: "bg-indigo-50 text-indigo-700 border border-indigo-100",
-  IN_PROGRESS: "bg-yellow-50 text-yellow-700 border border-yellow-100",
-  RESOLVED: "bg-green-50 text-green-700 border border-green-100",
-  CLOSED: "bg-slate-100 text-slate-500 border border-slate-200",
-  
-  // Custom user ones
-  ACTIVE: "bg-blue-50 text-blue-700 border border-blue-100",
-  
-  // Appointment / General Statuses
-  PENDING: "bg-yellow-50 text-yellow-700 border border-yellow-100",
-  CONFIRMED: "bg-green-50 text-green-700 border border-green-100",
-  COMPLETED: "bg-emerald-50 text-emerald-700 border border-emerald-100",
-  CANCELLED: "bg-red-50 text-red-600 border border-red-100",
-  NO_SHOW: "bg-orange-50 text-orange-700 border border-orange-100",
-  
+  OPEN:        { dot: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "Open" },
+  ASSIGNED:    { dot: "#8B5CF6", bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", label: "Assigned" },
+  IN_PROGRESS: { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", label: "In Progress" },
+  RESOLVED:    { dot: "#10B981", bg: "#ECFDF5", text: "#065F46", border: "#A7F3D0", label: "Resolved" },
+  CLOSED:      { dot: "#6B7280", bg: "#F9FAFB", text: "#374151", border: "#E5E7EB", label: "Closed" },
+  CANCELLED:   { dot: "#EF4444", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", label: "Cancelled" },
+
+  // User status
+  ACTIVE:      { dot: "#10B981", bg: "#ECFDF5", text: "#065F46", border: "#A7F3D0", label: "Active" },
+
+  // Appointment Statuses
+  PENDING:     { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", label: "Pending" },
+  CONFIRMED:   { dot: "#10B981", bg: "#ECFDF5", text: "#065F46", border: "#A7F3D0", label: "Confirmed" },
+  COMPLETED:   { dot: "#059669", bg: "#D1FAE5", text: "#065F46", border: "#6EE7B7", label: "Completed" },
+  NO_SHOW:     { dot: "#F97316", bg: "#FFF7ED", text: "#9A3412", border: "#FED7AA", label: "No Show" },
+
   // Payment Statuses
-  INITIATED: "bg-slate-50 text-slate-700 border border-slate-100",
-  CREATED: "bg-yellow-50 text-yellow-700 border border-yellow-100",
-  SUCCESS: "bg-green-50 text-green-700 border border-green-100",
-  PAID: "bg-green-50 text-green-700 border border-green-100",
-  FAILED: "bg-red-50 text-red-600 border border-red-100",
-  REFUNDED: "bg-purple-50 text-purple-700 border border-purple-100",
+  INITIATED:   { dot: "#6B7280", bg: "#F9FAFB", text: "#374151", border: "#E5E7EB", label: "Initiated" },
+  CREATED:     { dot: "#F59E0B", bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", label: "Created" },
+  SUCCESS:     { dot: "#10B981", bg: "#ECFDF5", text: "#065F46", border: "#A7F3D0", label: "Paid" },
+  PAID:        { dot: "#10B981", bg: "#ECFDF5", text: "#065F46", border: "#A7F3D0", label: "Paid" },
+  FAILED:      { dot: "#EF4444", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", label: "Failed" },
+  REFUNDED:    { dot: "#8B5CF6", bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", label: "Refunded" },
+};
+
+const DEFAULT: StatusConfig = {
+  dot: "#6B7280",
+  bg: "#F9FAFB",
+  text: "#374151",
+  border: "#E5E7EB",
 };
 
 export default function StatusPill({ status }: { status: Status }) {
   if (!status) return null;
+  const cfg = STATUS_MAP[status] ?? DEFAULT;
+  const label = cfg.label ?? status.replace(/_/g, " ");
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_MAP[status] ?? "bg-slate-100 text-slate-500"}`}>
-      {status.replace("_", " ")}
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap"
+      style={{
+        background: cfg.bg,
+        color: cfg.text,
+        border: `1px solid ${cfg.border}`,
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: cfg.dot }}
+      />
+      {label}
     </span>
   );
 }

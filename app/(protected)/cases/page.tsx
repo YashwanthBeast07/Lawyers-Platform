@@ -7,7 +7,6 @@ import { caseService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
 import type { CaseResponse, CaseRequestDto, CaseType } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
-import SectionHeader from "@/components/ui/SectionHeader";
 import Pagination from "@/components/ui/Pagination";
 import Modal from "@/components/ui/Modal";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -16,8 +15,34 @@ import { PageSpinner } from "@/components/ui/Spinner";
 
 const CASE_TYPES: CaseType[] = ["CIVIL", "CRIMINAL", "CORPORATE", "FAMILY", "PROPERTY", "CYBER", "OTHER"];
 
+const CASE_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
+  CIVIL:     { bg: "#EFF6FF", text: "#1D4ED8" },
+  CRIMINAL:  { bg: "#FEF2F2", text: "#B91C1C" },
+  CORPORATE: { bg: "#F0FDF4", text: "#15803D" },
+  FAMILY:    { bg: "#FDF4FF", text: "#7E22CE" },
+  PROPERTY:  { bg: "#FFFBEB", text: "#B45309" },
+  CYBER:     { bg: "#F0F9FF", text: "#0369A1" },
+  OTHER:     { bg: "#F9FAFB", text: "#374151" },
+};
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ── Form Field Component ───────────────────────────────────────────────────────
+
+function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label
+        className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2"
+        style={{ color: "var(--text-muted)" }}
+      >
+        {label} {required && <span style={{ color: "var(--gold)" }}>*</span>}
+      </label>
+      {children}
+    </div>
+  );
 }
 
 // ── Submit Case Modal ─────────────────────────────────────────────────────────
@@ -49,61 +74,70 @@ function SubmitCaseModal({ open, onClose, onSuccess }: { open: boolean; onClose:
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Submit New Case" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Case Title</label>
+    <Modal open={open} onClose={onClose} title="Submit New Case" subtitle="Describe your legal matter to get matched with the right advocate." size="md">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <FormField label="Case Title" required>
           <input
             type="text"
             required
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="e.g. Property dispute in Bengaluru"
-            className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] placeholder:text-[#CBD5E1] transition-colors"
+            className="input-field"
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Case Type</label>
+        <FormField label="Case Type" required>
           <select
             value={form.caseType}
             onChange={(e) => setForm((f) => ({ ...f, caseType: e.target.value as CaseType }))}
-            className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] transition-colors bg-white"
+            className="input-field"
+            style={{ cursor: "pointer" }}
           >
             {CASE_TYPES.map((t) => (
-              <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>
+              <option key={t} value={t}>
+                {t.charAt(0) + t.slice(1).toLowerCase()}
+              </option>
             ))}
           </select>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Description</label>
+        <FormField label="Description" required>
           <textarea
             required
             rows={4}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="Describe your legal issue in detail. The more context you provide, the better matched you'll be."
-            className="w-full border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 py-2.5 text-sm text-[#0D1B2A] placeholder:text-[#CBD5E1] transition-colors resize-none"
+            placeholder="Describe your legal issue in detail. The more context you provide, the better matched you'll be with an advocate."
+            className="input-field"
+            style={{ height: "auto", padding: "10px 14px", resize: "none" }}
           />
-        </div>
+        </FormField>
 
         <div className="flex gap-3 pt-1">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-10 border border-[#E2E8F0] text-[#64748B] text-sm font-semibold rounded-lg hover:border-[#0D1B2A] hover:text-[#0D1B2A] transition-all"
+            className="btn-ghost flex-1"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 h-10 bg-[#C9A84C] hover:bg-[#E8C97A] disabled:opacity-60 text-[#0D1B2A] text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+            className="btn-primary flex-1"
           >
             {loading ? (
-              <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Submitting…</>
-            ) : "Submit Case"}
+              <>
+                <div
+                  className="w-4 h-4 border-2 border-t-transparent rounded-full"
+                  style={{ borderColor: "var(--navy)", borderTopColor: "transparent", animation: "spin 0.75s linear infinite" }}
+                />
+                Submitting…
+              </>
+            ) : (
+              "Submit Case"
+            )}
           </button>
         </div>
       </form>
@@ -139,20 +173,26 @@ export default function CasesPage() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <SectionHeader 
-          eyebrow="My Cases" 
-          title="Legal Matters" 
-          subtitle={user?.role === "CLIENT" ? "Manage and track your active cases." : "Cases assigned to you."} 
-        />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--gold)" }}>
+            My Cases
+          </p>
+          <h1 className="text-2xl font-black" style={{ color: "var(--text)" }}>
+            Legal Matters
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+            {user?.role === "CLIENT" ? "Manage and track your active cases." : "Cases assigned to you."}
+          </p>
+        </div>
         {user?.role === "CLIENT" && (
           <button
             onClick={() => setModalOpen(true)}
-            className="bg-[#C9A84C] text-[#0D1B2A] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm flex items-center gap-2"
+            className="btn-primary self-start md:self-auto"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             New Case
@@ -160,78 +200,156 @@ export default function CasesPage() {
         )}
       </div>
 
-      {/* Cases list */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Cases Table */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-light)",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
         {loading ? (
-          <div className="py-16"><PageSpinner /></div>
+          <div className="py-20">
+            <PageSpinner />
+          </div>
         ) : cases.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="py-20 text-center flex flex-col items-center gap-4">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: "var(--bg)", color: "var(--text-light)" }}
+            >
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-[#0D1B2A] mb-1">No cases yet</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              {user?.role === "CLIENT" ? "Submit your first case to get matched with a verified lawyer." : "No cases have been assigned to you yet."}
-            </p>
+            <div>
+              <h3 className="font-bold text-base" style={{ color: "var(--text)" }}>
+                No cases yet
+              </h3>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+                {user?.role === "CLIENT"
+                  ? "Submit your first case to get matched with a verified advocate."
+                  : "No cases have been assigned to you yet."}
+              </p>
+            </div>
             {user?.role === "CLIENT" && (
               <button
                 onClick={() => setModalOpen(true)}
-                className="bg-[#0D1B2A] text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-[#1A3050] transition-colors shadow-sm inline-flex items-center gap-2"
+                className="btn-secondary mt-1"
               >
                 Submit your first case
               </button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
-            {cases.map((c) => (
-              <Link
-                key={c.id}
-                href={`/cases/${c.id}`}
-                className="flex flex-col md:flex-row md:items-center justify-between p-6 hover:bg-[#FAFAF7] transition-all group"
-              >
-                <div className="space-y-1 mb-4 md:mb-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-[#0D1B2A] group-hover:text-[#C9A84C] transition-colors">
-                      {c.title}
-                    </h3>
-                    <StatusPill status={c.status} />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <>
+            {/* Table header */}
+            <div
+              className="hidden md:grid grid-cols-12 px-6 py-3"
+              style={{
+                background: "var(--surface-2)",
+                borderBottom: "1px solid var(--border-light)",
+              }}
+            >
+              <p className="col-span-5 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "var(--text-light)" }}>
+                Case
+              </p>
+              <p className="col-span-2 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "var(--text-light)" }}>
+                Type
+              </p>
+              <p className="col-span-2 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "var(--text-light)" }}>
+                Status
+              </p>
+              <p className="col-span-2 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "var(--text-light)" }}>
+                Filed
+              </p>
+              <p className="col-span-1 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: "var(--text-light)" }}>
+                &nbsp;
+              </p>
+            </div>
+
+            <div>
+              {cases.map((c, idx) => {
+                const typeColor = CASE_TYPE_COLORS[c.caseType] ?? CASE_TYPE_COLORS.OTHER;
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/cases/${c.id}`}
+                    className="flex flex-col md:grid md:grid-cols-12 items-start md:items-center px-6 py-4 group transition-colors"
+                    style={{
+                      borderBottom: idx < cases.length - 1 ? "1px solid var(--border-light)" : "none",
+                    }}
+                    onMouseOver={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "var(--surface-2)";
+                    }}
+                    onMouseOut={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "transparent";
+                    }}
+                  >
+                    {/* Case name */}
+                    <div className="col-span-5 flex items-center gap-3 mb-2 md:mb-0">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black flex-shrink-0"
+                        style={{ background: "var(--bg)", color: "var(--text-muted)" }}
+                      >
+                        #{c.id}
+                      </div>
+                      <div className="min-w-0">
+                        <p
+                          className="font-semibold text-sm truncate transition-colors"
+                          style={{ color: "var(--text)" }}
+                        >
+                          {c.title}
+                        </p>
+                        {c.lawyerName && (
+                          <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-light)" }}>
+                            Lawyer: {c.lawyerName}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Type */}
+                    <div className="col-span-2 mb-2 md:mb-0">
+                      <span
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                        style={{ background: typeColor.bg, color: typeColor.text }}
+                      >
+                        {c.caseType?.replace(/_/g, " ")}
+                      </span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="col-span-2 mb-2 md:mb-0">
+                      <StatusPill status={c.status} />
+                    </div>
+
+                    {/* Filed date */}
+                    <div className="col-span-2">
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                        {formatDate(c.createdAt)}
+                      </p>
+                    </div>
+
+                    {/* Arrow */}
+                    <div className="col-span-1 hidden md:flex justify-end">
+                      <svg
+                        className="w-4 h-4 opacity-25 group-hover:opacity-60 transition-opacity"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        style={{ color: "var(--text)" }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                       </svg>
-                      Filed on {formatDate(c.createdAt)}
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span>{c.caseType?.replace(/_/g, " ") ?? "—"}</span>
-                    {c.lawyerName && (
-                      <>
-                        <span className="text-slate-300">•</span>
-                        <span className="flex items-center gap-1.5">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                          </svg>
-                          Lawyer: {c.lawyerName}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
-                    <svg className="w-5 h-5 text-slate-400 group-hover:text-[#C9A84C]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

@@ -22,8 +22,25 @@ export default function ProtectedLayout({
 
   if (!initialized || loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#FAFAF7]">
-        <div className="w-8 h-8 border-4 border-[#0D1B2A] border-t-[#C9A84C] rounded-full animate-spin" />
+      <div
+        className="flex h-screen items-center justify-center"
+        style={{ background: "var(--bg)" }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black"
+            style={{
+              background: "linear-gradient(135deg, var(--gold-dark), var(--gold))",
+              color: "var(--navy)",
+            }}
+          >
+            G
+          </div>
+          <div
+            className="w-6 h-6 border-2 border-t-transparent rounded-full"
+            style={{ borderColor: "var(--gold)", animation: "spin 0.8s linear infinite" }}
+          />
+        </div>
       </div>
     );
   }
@@ -31,56 +48,69 @@ export default function ProtectedLayout({
   if (!user) return null;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#FAFAF7]">
+    <div className="flex flex-col md:flex-row min-h-screen" style={{ background: "var(--bg)" }}>
       {/* Desktop Sidebar */}
       <Sidebar className="hidden md:flex" />
 
       {/* Mobile Header */}
-      <div className="md:hidden flex h-14 bg-[#0D1B2A] items-center justify-between px-5 border-b border-white/5 text-white w-full sticky top-0 z-40">
-        <Link href="/dashboard" className="text-lg font-bold text-white">
-          Go<span className="text-[#C9A84C]">Lawyers</span>
+      <div
+        className="md:hidden flex h-14 items-center justify-between px-5 w-full sticky top-0 z-40"
+        style={{
+          background: "var(--navy)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        <Link href="/dashboard" className="flex items-center gap-1 text-lg font-black text-white">
+          Go<span style={{ color: "var(--gold)" }}>Lawyers</span>
         </Link>
         <button
           onClick={() => setIsMobileOpen(true)}
-          className="p-1.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+          className="p-2 text-white/70 hover:text-white rounded-lg transition-colors"
+          style={{ background: "rgba(255,255,255,0.05)" }}
           aria-label="Open menu"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       </div>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex animate-fade-in">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileOpen(false)}
           />
-          {/* Drawer Sidebar */}
-          <div className="relative flex flex-col bg-[#0D1B2A] w-[240px] max-w-[80vw] h-full shadow-2xl transition-transform duration-300 transform translate-x-0">
-            {/* Close Button inside Drawer */}
-            <div className="absolute top-3.5 right-4 z-50">
+          {/* Drawer */}
+          <div
+            className="relative flex flex-col w-[240px] max-w-[82vw] h-full shadow-2xl animate-slide-down"
+            style={{ background: "var(--navy)" }}
+          >
+            <div className="absolute top-3 right-3 z-10">
               <button
                 onClick={() => setIsMobileOpen(false)}
-                className="p-1.5 text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                className="p-2 text-white/60 hover:text-white rounded-lg transition-colors"
+                style={{ background: "rgba(255,255,255,0.06)" }}
                 aria-label="Close menu"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            {/* Render Sidebar within mobile drawer context */}
             <Sidebar className="w-full" onClose={() => setIsMobileOpen(false)} />
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto w-full">{children}</main>
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto w-full min-w-0">
+        <div className="animate-slide-up">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { appointmentService, caseService, lawyerService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
 import type { AppointmentResponse, AppointmentStatus, CaseResponse, AppointmentMode, LawyerProfileResponse } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
-import SectionHeader from "@/components/ui/SectionHeader";
 import Pagination from "@/components/ui/Pagination";
 import Modal from "@/components/ui/Modal";
 import { PageSpinner } from "@/components/ui/Spinner";
@@ -19,6 +18,37 @@ function formatDateTime(iso: string) {
     day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+}
+
+function formatDateShort(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+function formatTimeOnly(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Form Field ──────────────────────────────────────────────────────────────────
+
+function FormField({ label, required, children, hint }: {
+  label: string; required?: boolean; children: React.ReactNode; hint?: string;
+}) {
+  return (
+    <div>
+      <label
+        className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2"
+        style={{ color: "var(--text-muted)" }}
+      >
+        {label} {required && <span style={{ color: "var(--gold)" }}>*</span>}
+      </label>
+      {children}
+      {hint && (
+        <p className="text-xs mt-1.5" style={{ color: "var(--text-light)" }}>
+          {hint}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // ── Book Appointment Modal ────────────────────────────────────────────────────
@@ -42,7 +72,7 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
     notes: "",
   });
 
-  // Fetch all verified lawyers if requestedLawyerId is not passed
+  // Fetch lawyers if requestedLawyerId not passed
   useEffect(() => {
     if (!open) return;
     if (!requestedLawyerId) {
@@ -57,13 +87,11 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
     caseService.getMyCases(0, 50).then((d) => {
       const activeLawyerId = requestedLawyerId || (selectedLawyerId ? Number(selectedLawyerId) : null);
       if (activeLawyerId) {
-        // Show cases assigned to this lawyer OR unassigned cases
-        setCases(d.content.filter((c) => 
-          c.lawyerId === activeLawyerId || 
+        setCases(d.content.filter((c) =>
+          c.lawyerId === activeLawyerId ||
           (!c.lawyerId && ["OPEN", "ASSIGNED", "IN_PROGRESS"].includes(c.status))
         ));
       } else {
-        // Show only assigned/in progress cases if no specific lawyer selected
         setCases(d.content.filter((c) => ["ASSIGNED", "IN_PROGRESS"].includes(c.status)));
       }
     });
@@ -80,12 +108,9 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
     setLoading(true);
     try {
       const selectedCase = cases.find((c) => c.id === Number(form.caseRequestId));
-      
-      // If the case is unassigned and we have a requested lawyer, assign them first!
       if (selectedCase && !selectedCase.lawyerId) {
         await caseService.assignLawyer(selectedCase.id, { lawyerId: activeLawyerId });
       }
-
       const created = await appointmentService.book({
         caseRequestId: Number(form.caseRequestId),
         scheduledAt: new Date(form.scheduledAt).toISOString(),
@@ -93,7 +118,7 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
         mode: form.mode,
         notes: form.notes || undefined,
       });
-      toast.success("Appointment booked!");
+      toast.success("Appointment booked successfully!");
       onSuccess(created);
       onClose();
     } catch (err: unknown) {
@@ -107,116 +132,279 @@ function BookModal({ open, onClose, onSuccess, requestedLawyerId }: {
   const minDateTime = new Date(Date.now() + 3600_000).toISOString().slice(0, 16);
 
   return (
-    <Modal open={open} onClose={onClose} title="Book Appointment" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal open={open} onClose={onClose} title="Book Consultation" subtitle="Schedule a meeting with your lawyer." size="md">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {!requestedLawyerId && (
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5 font-bold">Select Lawyer</label>
+          <FormField label="Select Lawyer" required>
             <select
               required
               value={selectedLawyerId}
               onChange={(e) => {
                 setSelectedLawyerId(e.target.value ? Number(e.target.value) : "");
-                setForm((f) => ({ ...f, caseRequestId: "" })); // clear case selection on lawyer change
+                setForm((f) => ({ ...f, caseRequestId: "" }));
               }}
-              className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] bg-white transition-colors"
+              className="input-field"
             >
-              <option value="">Choose a verified lawyer</option>
+              <option value="">Choose a verified advocate</option>
               {lawyers.map((l) => (
-                <option key={l.id} value={l.id}>{l.fullName} ({l.specialization || "General"})</option>
+                <option key={l.id} value={l.id}>
+                  {l.fullName} — {l.specialization || "General Practice"}
+                </option>
               ))}
             </select>
-          </div>
+          </FormField>
         )}
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5 font-bold">Select Case</label>
+        <FormField
+          label="Select Case"
+          required
+          hint={cases.length === 0 ? "No active cases found for the selected lawyer." : undefined}
+        >
           <select
             required
             value={form.caseRequestId}
             onChange={(e) => setForm((f) => ({ ...f, caseRequestId: e.target.value }))}
-            className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] bg-white transition-colors"
+            className="input-field"
           >
             <option value="">Select a case</option>
             {cases.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
-          {cases.length === 0 && (
-            <p className="text-xs text-[#94A3B8] mt-1">No assigned or open cases available for the selected lawyer.</p>
-          )}
-        </div>
+        </FormField>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Date & Time</label>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Date & Time" required>
             <input
               type="datetime-local"
               required
               min={minDateTime}
               value={form.scheduledAt}
               onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-              className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] bg-white transition-colors"
+              className="input-field"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Duration</label>
+          </FormField>
+          <FormField label="Duration">
             <select
               value={form.durationMinutes}
               onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
-              className="w-full h-11 border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 text-sm text-[#0D1B2A] bg-white transition-colors"
+              className="input-field"
             >
-              <option value={30}>30 mins</option>
+              <option value={30}>30 minutes</option>
               <option value={60}>1 hour</option>
               <option value={90}>1.5 hours</option>
               <option value={120}>2 hours</option>
             </select>
-          </div>
+          </FormField>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Mode</label>
+        <FormField label="Meeting Mode">
           <div className="grid grid-cols-2 gap-3">
             {(["ONLINE", "IN_PERSON"] as AppointmentMode[]).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, mode: m }))}
-                className={`py-2.5 rounded-lg border text-sm font-bold transition-all ${
+                className="py-3 rounded-xl text-sm font-semibold transition-all"
+                style={
                   form.mode === m
-                    ? "border-[#C9A84C] bg-[#C9A84C]/10 text-[#0D1B2A]"
-                    : "border-slate-200 text-slate-500 hover:border-[#C9A84C]/50"
-                }`}
+                    ? {
+                        background: "rgba(201,168,76,0.1)",
+                        border: "2px solid var(--gold)",
+                        color: "var(--navy)",
+                      }
+                    : {
+                        background: "var(--surface)",
+                        border: "1.5px solid var(--border)",
+                        color: "var(--text-muted)",
+                      }
+                }
               >
                 {m === "ONLINE" ? "🎥 Online" : "🏢 In Person"}
               </button>
             ))}
           </div>
-        </div>
+        </FormField>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#0D1B2A] mb-1.5">Notes (optional)</label>
+        <FormField label="Notes (optional)">
           <textarea
             rows={3}
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            placeholder="Any specific topics or documents to discuss…"
-            className="w-full border border-[#E2E8F0] focus:border-[#C9A84C] outline-none rounded-lg px-3.5 py-2.5 text-sm text-[#0D1B2A] placeholder:text-[#CBD5E1] resize-none"
+            placeholder="Any specific topics or documents to prepare for this consultation…"
+            className="input-field"
+            style={{ height: "auto", padding: "10px 14px", resize: "none" }}
           />
-        </div>
+        </FormField>
 
         <div className="flex gap-3 pt-1">
-          <button type="button" onClick={onClose}
-            className="flex-1 h-10 border border-[#E2E8F0] text-slate-500 font-semibold text-sm rounded-lg hover:border-[#0D1B2A] transition-all">
+          <button type="button" onClick={onClose} className="btn-ghost flex-1">
             Cancel
           </button>
-          <button type="submit" disabled={loading}
-            className="flex-1 h-10 bg-[#C9A84C] hover:bg-[#E8C97A] disabled:opacity-60 text-[#0D1B2A] text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
-            {loading ? <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Booking…</> : "Book Appointment"}
+          <button type="submit" disabled={loading} className="btn-primary flex-1">
+            {loading ? (
+              <>
+                <div
+                  className="w-4 h-4 border-2 border-t-transparent rounded-full"
+                  style={{ borderColor: "var(--navy)", borderTopColor: "transparent", animation: "spin 0.75s linear infinite" }}
+                />
+                Booking…
+              </>
+            ) : (
+              "Book Appointment"
+            )}
           </button>
         </div>
       </form>
     </Modal>
+  );
+}
+
+// ── Appointment Card ──────────────────────────────────────────────────────────
+
+function ApptCard({
+  a,
+  user,
+  onUpdate,
+  updating,
+}: {
+  a: AppointmentResponse;
+  user: { role: string } | null;
+  onUpdate: (id: number, status: AppointmentStatus) => void;
+  updating: boolean;
+}) {
+  const canUpdateStatus = user?.role === "LAWYER" || user?.role === "ADMIN";
+
+  return (
+    <div
+      className="p-5 transition-colors"
+      style={{ borderBottom: "1px solid var(--border-light)" }}
+      onMouseOver={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "var(--surface-2)";
+      }}
+      onMouseOut={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "transparent";
+      }}
+    >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Info */}
+        <div className="flex items-start gap-4">
+          {/* Calendar visual */}
+          <div
+            className="w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-center"
+            style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wide leading-none" style={{ color: "var(--gold)" }}>
+              {formatDateShort(a.scheduledAt).split(" ")[1]}
+            </p>
+            <p className="text-xl font-black leading-tight" style={{ color: "var(--text)" }}>
+              {formatDateShort(a.scheduledAt).split(" ")[0]}
+            </p>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 className="font-bold text-sm" style={{ color: "var(--text)" }}>
+                {a.caseTitle}
+              </h3>
+              <StatusPill status={a.status} />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style={{ color: "var(--text-muted)" }}>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {formatTimeOnly(a.scheduledAt)} · {a.durationMinutes} mins
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+                {user?.role === "CLIENT" ? `Adv. ${a.lawyerName}` : `Client: ${a.clientName}`}
+              </span>
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-lg"
+                style={{ background: "var(--bg)", color: "var(--text-muted)" }}
+              >
+                {a.mode?.replace(/_/g, " ")}
+              </span>
+            </div>
+            {a.notes && (
+              <p
+                className="text-xs mt-2 italic border-l-2 pl-2"
+                style={{ color: "var(--text-light)", borderColor: "var(--border)" }}
+              >
+                &ldquo;{a.notes}&rdquo;
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {canUpdateStatus && a.status === "PENDING" && (
+            <>
+              <button
+                onClick={() => onUpdate(a.id, "CONFIRMED")}
+                disabled={updating}
+                className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
+                style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}
+                onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#D1FAE5")}
+                onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#ECFDF5")}
+              >
+                ✓ Confirm
+              </button>
+              <button
+                onClick={() => onUpdate(a.id, "CANCELLED")}
+                disabled={updating}
+                className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
+                style={{ background: "#FEF2F2", color: "#B91C1C", border: "1px solid #FECACA" }}
+                onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#FEE2E2")}
+                onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#FEF2F2")}
+              >
+                ✕ Cancel
+              </button>
+            </>
+          )}
+          {canUpdateStatus && a.status === "CONFIRMED" && (
+            <button
+              onClick={() => onUpdate(a.id, "COMPLETED")}
+              disabled={updating}
+              className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
+              style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}
+              onMouseOver={(e) => ((e.currentTarget as HTMLElement).style.background = "#DBEAFE")}
+              onMouseOut={(e) => ((e.currentTarget as HTMLElement).style.background = "#EFF6FF")}
+            >
+              Mark Complete
+            </button>
+          )}
+          {user?.role === "CLIENT" && a.status === "PENDING" && (
+            <button
+              onClick={() => onUpdate(a.id, "CANCELLED")}
+              disabled={updating}
+              className="text-xs font-bold px-3 py-2 rounded-lg transition-all"
+              style={{ background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+              onMouseOver={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "#FEF2F2";
+                el.style.color = "#B91C1C";
+                el.style.borderColor = "#FECACA";
+              }}
+              onMouseOut={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "var(--surface)";
+                el.style.color = "var(--text-muted)";
+                el.style.borderColor = "var(--border)";
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -236,9 +424,7 @@ function AppointmentsPageContent() {
   const requestedLawyerId = searchParams.get("lawyerId") ? Number(searchParams.get("lawyerId")) : null;
 
   useEffect(() => {
-    if (requestedLawyerId) {
-      setModalOpen(true);
-    }
+    if (requestedLawyerId) setModalOpen(true);
   }, [requestedLawyerId]);
 
   const fetchAppts = async (p: number) => {
@@ -267,23 +453,27 @@ function AppointmentsPageContent() {
     }
   };
 
-  const canUpdateStatus = user?.role === "LAWYER" || user?.role === "ADMIN";
-
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <SectionHeader 
-          eyebrow="Schedule" 
-          title="Appointments" 
-          subtitle="Manage your upcoming consultations." 
-        />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "var(--gold)" }}>
+            Schedule
+          </p>
+          <h1 className="text-2xl font-black" style={{ color: "var(--text)" }}>
+            Appointments
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+            Manage your upcoming consultations and meetings.
+          </p>
+        </div>
         {user?.role === "CLIENT" && (
           <button
             onClick={() => setModalOpen(true)}
-            className="bg-[#C9A84C] text-[#0D1B2A] px-4 py-2 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm flex items-center gap-2"
+            className="btn-primary self-start md:self-auto"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             Book Consultation
@@ -291,98 +481,55 @@ function AppointmentsPageContent() {
         )}
       </div>
 
-      {/* List */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Appointments List */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-light)",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
         {loading ? (
-          <div className="py-16"><PageSpinner /></div>
+          <div className="py-20">
+            <PageSpinner />
+          </div>
         ) : appts.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="py-20 text-center flex flex-col items-center gap-4">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: "var(--bg)", color: "var(--text-light)" }}
+            >
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-[#0D1B2A] mb-1">No appointments yet</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              {user?.role === "CLIENT" ? "Book a consultation with your assigned lawyer." : "No appointments scheduled for you yet."}
-            </p>
+            <div>
+              <h3 className="font-bold text-base" style={{ color: "var(--text)" }}>
+                No appointments yet
+              </h3>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+                {user?.role === "CLIENT"
+                  ? "Book a consultation with your assigned lawyer."
+                  : "No appointments have been scheduled for you yet."}
+              </p>
+            </div>
             {user?.role === "CLIENT" && (
-              <button onClick={() => setModalOpen(true)}
-                className="bg-[#0D1B2A] text-white px-5 py-2.5 rounded-lg font-medium text-sm hover:bg-[#1A3050] transition-colors shadow-sm">
+              <button onClick={() => setModalOpen(true)} className="btn-secondary mt-1">
                 Book your first appointment
               </button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div>
             {appts.map((a) => (
-              <div key={a.id} className="p-6 hover:bg-[#FAFAF7] transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-[#0D1B2A]">{a.caseTitle}</h3>
-                    <StatusPill status={a.status} />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500 font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {formatDateTime(a.scheduledAt)}
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span>{a.durationMinutes} mins</span>
-                    <span className="text-slate-300">•</span>
-                    <span>{user?.role === "CLIENT" ? `Lawyer: ${a.lawyerName}` : `Client: ${a.clientName}`}</span>
-                    <span className="text-slate-300">•</span>
-                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">{a.mode?.replace(/_/g, " ") ?? "—"}</span>
-                  </div>
-                  {a.notes && (
-                    <p className="text-xs text-slate-400 italic mt-2 border-l-2 border-slate-200 pl-2">
-                      &quot;{a.notes}&quot;
-                    </p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  {canUpdateStatus && a.status === "PENDING" && (
-                    <>
-                      <button
-                        onClick={() => handleStatusUpdate(a.id, "CONFIRMED")}
-                        disabled={updatingId === a.id}
-                        className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-emerald-100"
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(a.id, "CANCELLED")}
-                        disabled={updatingId === a.id}
-                        className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-red-100"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  {canUpdateStatus && a.status === "CONFIRMED" && (
-                    <button
-                      onClick={() => handleStatusUpdate(a.id, "COMPLETED")}
-                      disabled={updatingId === a.id}
-                      className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-blue-100"
-                    >
-                      Mark Complete
-                    </button>
-                  )}
-                  {user?.role === "CLIENT" && a.status === "PENDING" && (
-                    <button
-                      onClick={() => handleStatusUpdate(a.id, "CANCELLED")}
-                      disabled={updatingId === a.id}
-                      className="text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-slate-200 hover:border-red-200 hover:bg-red-50"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
+              <ApptCard
+                key={a.id}
+                a={a}
+                user={user}
+                onUpdate={handleStatusUpdate}
+                updating={updatingId === a.id}
+              />
             ))}
           </div>
         )}
@@ -402,7 +549,7 @@ function AppointmentsPageContent() {
 
 export default function AppointmentsPage() {
   return (
-    <Suspense fallback={<div className="py-16 text-center"><PageSpinner /></div>}>
+    <Suspense fallback={<div className="py-20"><PageSpinner /></div>}>
       <AppointmentsPageContent />
     </Suspense>
   );

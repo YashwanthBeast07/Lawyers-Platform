@@ -6,6 +6,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string;
   size?: "sm" | "md" | "lg";
   children: ReactNode;
 }
@@ -20,6 +21,7 @@ export default function Modal({
   open,
   onClose,
   title,
+  subtitle,
   size = "md",
   children,
 }: ModalProps) {
@@ -38,16 +40,18 @@ export default function Modal({
   // Lock body scroll when open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[#0D1B2A]/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0D1B2A]/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -57,20 +61,50 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
-        className={`relative w-full ${SIZE_MAP[size]} bg-white rounded-2xl shadow-2xl overflow-hidden`}
+        className={`relative w-full ${SIZE_MAP[size]} rounded-2xl shadow-2xl overflow-hidden animate-scale-in`}
+        style={{
+          background: "var(--surface)",
+          boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.05)",
+        }}
       >
+        {/* Decorative top stripe */}
+        <div
+          className="h-1 w-full"
+          style={{ background: "linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light))" }}
+        />
+
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#E2E8F0]">
-            <h2
-              id="modal-title"
-              className="font-semibold text-[#0D1B2A] text-base"
-            >
-              {title}
-            </h2>
+          <div
+            className="flex items-start justify-between px-6 pt-5 pb-4"
+            style={{ borderBottom: "1px solid var(--border-light)" }}
+          >
+            <div>
+              <h2
+                id="modal-title"
+                className="font-bold text-lg leading-tight"
+                style={{ color: "var(--text)" }}
+              >
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#94A3B8] hover:text-[#0D1B2A] hover:bg-[#F1F5F9] transition-all"
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0 ml-4"
+              style={{ color: "var(--text-light)", background: "var(--bg)" }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "var(--border)";
+                e.currentTarget.style.color = "var(--text)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "var(--bg)";
+                e.currentTarget.style.color = "var(--text-light)";
+              }}
               aria-label="Close modal"
             >
               <svg
@@ -80,11 +114,7 @@ export default function Modal({
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>

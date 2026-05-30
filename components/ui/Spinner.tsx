@@ -4,42 +4,55 @@ interface SpinnerProps {
 }
 
 const SIZE_MAP = {
-  sm: "h-4 w-4",
-  md: "h-6 w-6",
-  lg: "h-8 w-8",
+  sm: { ring: "w-4 h-4", border: "border-[2px]" },
+  md: { ring: "w-6 h-6", border: "border-[2.5px]" },
+  lg: { ring: "w-9 h-9", border: "border-[3px]" },
 };
 
 export default function Spinner({ size = "md", className = "" }: SpinnerProps) {
+  const s = SIZE_MAP[size];
   return (
-    <svg
-      className={`animate-spin text-[#C9A84C] ${SIZE_MAP[size]} ${className}`}
-      viewBox="0 0 24 24"
-      fill="none"
+    <div
+      className={`${s.ring} ${s.border} rounded-full ${className}`}
+      style={{
+        borderColor: "var(--gold)",
+        borderTopColor: "transparent",
+        animation: "spin 0.75s linear infinite",
+      }}
       aria-label="Loading"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
-      />
-    </svg>
+    />
   );
 }
 
-// Full-page centered spinner — label prop lets callers set context-specific text
+// Full-page centered spinner
 export function PageSpinner({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-[#64748B]">
-      <Spinner size="lg" />
-      <p className="text-sm">{label}</p>
+    <div
+      className="min-h-[60vh] flex flex-col items-center justify-center gap-4"
+      style={{ color: "var(--text-muted)" }}
+    >
+      <div className="relative">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg"
+          style={{
+            background: "linear-gradient(135deg, var(--gold-dark), var(--gold))",
+            color: "var(--navy)",
+          }}
+        >
+          G
+        </div>
+        <div
+          className="absolute -inset-2 rounded-3xl border-2 border-t-transparent"
+          style={{
+            borderColor: "var(--gold)",
+            borderTopColor: "transparent",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+      </div>
+      <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+        {label}
+      </p>
     </div>
   );
 }

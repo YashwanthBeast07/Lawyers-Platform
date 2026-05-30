@@ -8,7 +8,6 @@ import { caseService, paymentService } from "@/lib/services";
 import { useToast } from "@/lib/toastContext";
 import type { CaseResponse, CaseStatus, PaymentResponse, CaseMessageResponse } from "@/lib/types";
 import StatusPill from "@/components/ui/StatusPill";
-import SectionHeader from "@/components/ui/SectionHeader";
 import { PageSpinner } from "@/components/ui/Spinner";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -30,7 +29,11 @@ declare global {
   }
 }
 
-function PaymentPanel({ caseId, amount, onPaymentSuccess }: { caseId: number; amount?: number; onPaymentSuccess?: () => void }) {
+function PaymentPanel({ caseId, amount, onPaymentSuccess }: {
+  caseId: number;
+  amount?: number;
+  onPaymentSuccess?: () => void;
+}) {
   const { toast } = useToast();
   const { user } = useAppSelector((s) => s.auth);
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
@@ -44,11 +47,16 @@ function PaymentPanel({ caseId, amount, onPaymentSuccess }: { caseId: number; am
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchPayment();
-  }, [caseId]);
+  useEffect(() => { fetchPayment(); }, [caseId]);
 
-  const openCheckout = async (orderId: string, keyId: string, amt: number, currency: string, paymentId: number) => {
+  const openCheckout = async (
+    orderId: string,
+    keyId: string,
+    amt: number,
+    currency: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    paymentId: number
+  ) => {
     const rzp = new window.Razorpay({
       key: keyId,
       order_id: orderId,
@@ -118,77 +126,113 @@ function PaymentPanel({ caseId, amount, onPaymentSuccess }: { caseId: number; am
     }
   };
 
-  if (loading) return <div className="h-10 bg-slate-50 rounded-lg animate-pulse" />;
+  if (loading) return (
+    <div className="h-12 rounded-xl skeleton" />
+  );
   if (!user || !amount) return null;
 
+  const isPaid = payment?.status === "SUCCESS";
+
   return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-      <SectionHeader title="Payment Details" />
-      <div className="space-y-3">
-        <div className="flex justify-between items-center py-2 border-b border-slate-50">
-          <span className="text-sm text-slate-500 font-medium">Amount</span>
-          <span className="font-bold text-[#0D1B2A]">
-            ₹{payment ? payment.amount.toLocaleString("en-IN") : amount.toLocaleString("en-IN")}
-          </span>
-        </div>
-        <div className="flex justify-between items-center py-2 border-b border-slate-50">
-          <span className="text-sm text-slate-500 font-medium">Status</span>
-          {payment ? (
-            <StatusPill status={payment.status} />
-          ) : (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-              UNPAID
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border-light)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="px-5 py-4"
+        style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+      >
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+          Payment Details
+        </p>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+              Consultation Fee
             </span>
+            <span className="font-bold text-lg" style={{ color: "var(--text)" }}>
+              ₹{(payment ? payment.amount : amount).toLocaleString("en-IN")}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+              Status
+            </span>
+            {payment ? (
+              <StatusPill status={payment.status} />
+            ) : (
+              <span
+                className="badge"
+                style={{ background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A" }}
+              >
+                Unpaid
+              </span>
+            )}
+          </div>
+          {payment?.paidAt && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+                Paid On
+              </span>
+              <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                {formatDate(payment.paidAt)}
+              </span>
+            </div>
           )}
         </div>
-        {payment?.paidAt && (
-          <div className="flex justify-between items-center py-2 border-b border-slate-50">
-            <span className="text-sm text-slate-500 font-medium">Paid On</span>
-            <span className="text-sm font-medium text-[#0D1B2A]">{formatDate(payment.paidAt)}</span>
+
+        {isPaid && (
+          <div
+            className="rounded-xl p-3 flex items-center gap-2"
+            style={{ background: "#ECFDF5", border: "1px solid #A7F3D0" }}
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: "#10B981" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-xs font-semibold" style={{ color: "#065F46" }}>
+              Payment confirmed. Order copy unlocked.
+            </p>
           </div>
         )}
 
-        {/* Client-Specific Controls */}
+        {/* Client Payment Controls */}
         {user.role === "CLIENT" && (
           <>
-            {/* Case 1: Payment not yet initiated */}
             {!payment && (
               <button
                 onClick={handlePay}
                 disabled={paying}
-                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn-primary w-full"
               >
-                {paying ? "Opening checkout…" : "Pay Consultation Fee"}
+                {paying ? "Opening Checkout…" : "Pay Consultation Fee"}
               </button>
             )}
-
-            {/* Case 2: Payment failed and can be retried */}
             {payment && payment.status === "FAILED" && payment.canRetry && (
-              <button
-                onClick={handleRetry}
-                disabled={paying}
-                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {paying ? "Opening checkout…" : `Retry Payment (${payment.retryCount}/${payment.maxRetries})`}
+              <button onClick={handleRetry} disabled={paying} className="btn-primary w-full">
+                {paying ? "Opening Checkout…" : `Retry Payment (${payment.retryCount}/${payment.maxRetries})`}
               </button>
             )}
-
-            {/* Case 3: Order is created or pending but checkout was not completed */}
-            {payment && (payment.status === "INITIATED" || payment.status === "CREATED" || payment.status === "PENDING") && (
-              <button
-                onClick={handleRetry}
-                disabled={paying}
-                className="w-full mt-4 bg-[#C9A84C] text-[#0D1B2A] px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#E8C97A] transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {paying ? "Opening checkout…" : "Complete Payment"}
+            {payment && ["INITIATED", "CREATED", "PENDING"].includes(payment.status) && (
+              <button onClick={handleRetry} disabled={paying} className="btn-primary w-full">
+                {paying ? "Opening Checkout…" : "Complete Payment"}
               </button>
             )}
           </>
         )}
 
-        {/* Lawyer/Admin Notice */}
         {user.role !== "CLIENT" && !payment && (
-          <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 text-center leading-relaxed mt-4">
+          <p
+            className="text-xs font-semibold text-center p-3 rounded-xl"
+            style={{ background: "#FFFBEB", color: "#B45309", border: "1px solid #FDE68A" }}
+          >
             Awaiting consultation fee payment from the client.
           </p>
         )}
@@ -221,7 +265,6 @@ export default function CaseDetailPage() {
       const cData = await caseService.getById(Number(id));
       setCaseData(cData);
       setFeeInput(cData.quotedAmount ? cData.quotedAmount.toString() : "");
-
       const paid = await paymentService.getByCase(Number(id))
         .then((p) => p.status === "SUCCESS")
         .catch(() => false);
@@ -237,9 +280,7 @@ export default function CaseDetailPage() {
     try {
       const msgs = await caseService.getMessages(Number(id));
       setMessages(msgs);
-    } catch {
-      // fail silently
-    }
+    } catch { /* fail silently */ }
   };
 
   useEffect(() => {
@@ -253,7 +294,7 @@ export default function CaseDetailPage() {
     try {
       const updated = await caseService.updateStatus(caseData.id, { status });
       setCaseData(updated);
-      toast.success(`Case status updated to ${status}`);
+      toast.success(`Case status updated to ${status.replace(/_/g, " ")}`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to update status.";
       toast.error(msg);
@@ -273,9 +314,9 @@ export default function CaseDetailPage() {
     try {
       const updated = await caseService.updateFee(caseData.id, amount);
       setCaseData(updated);
-      toast.success(`Consultation fee set to ₹${amount.toLocaleString("en-IN")} — client has been notified.`);
+      toast.success(`Fee set to ₹${amount.toLocaleString("en-IN")} — client has been notified.`);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to update case fee.";
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to update fee.";
       toast.error(msg);
     } finally {
       setUpdatingFee(false);
@@ -289,7 +330,7 @@ export default function CaseDetailPage() {
     try {
       const updated = await caseService.uploadOrderCopy(caseData.id, file);
       setCaseData(updated);
-      toast.success("Case final order copy uploaded successfully!");
+      toast.success("Order copy uploaded successfully!");
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to upload file.";
       toast.error(msg);
@@ -310,7 +351,7 @@ export default function CaseDetailPage() {
       link.click();
       link.parentNode?.removeChild(link);
     } catch {
-      toast.error("Failed to download the order copy. Confirm payment is completed.");
+      toast.error("Failed to download. Ensure payment is completed.");
     }
   };
 
@@ -343,317 +384,657 @@ export default function CaseDetailPage() {
   };
   const nextStatuses = NEXT_STATUSES[caseData.status] ?? [];
 
-  const milestones: { label: string; status: CaseStatus }[] = [
-    { label: "Submitted", status: "OPEN" },
-    { label: "Assigned", status: "ASSIGNED" },
-    { label: "In Progress", status: "IN_PROGRESS" },
-    { label: "Resolved", status: "RESOLVED" },
-    { label: "Closed", status: "CLOSED" },
+  const milestones: { label: string; status: CaseStatus; icon: string }[] = [
+    { label: "Submitted", status: "OPEN", icon: "📋" },
+    { label: "Assigned", status: "ASSIGNED", icon: "👤" },
+    { label: "In Progress", status: "IN_PROGRESS", icon: "⚡" },
+    { label: "Resolved", status: "RESOLVED", icon: "✅" },
+    { label: "Closed", status: "CLOSED", icon: "🔒" },
   ];
 
   const currentMilestoneIdx = milestones.findIndex((m) => m.status === caseData.status);
+  const progressPct = caseData.status === "CANCELLED"
+    ? 0
+    : Math.max(0, (currentMilestoneIdx / (milestones.length - 1)) * 100);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-slide-up">
+      {/* Back nav */}
+      <Link
+        href="/cases"
+        className="inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+        style={{ color: "var(--text-muted)" }}
+        onMouseOver={(e) => (e.currentTarget.style.color = "var(--gold)")}
+        onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back to Cases
+      </Link>
+
       {/* Header */}
-      <div>
-        <Link href="/cases" className="text-sm font-medium text-slate-500 hover:text-[#C9A84C] transition-colors flex items-center gap-2 mb-6">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
-          Back to Cases
-        </Link>
+      <div
+        className="rounded-2xl p-6"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-light)",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <SectionHeader 
-            eyebrow={`Case #${caseData.id}`} 
-            title={caseData.title} 
-            subtitle={`Filed on ${formatDate(caseData.createdAt)} • ${caseData.caseType?.replace(/_/g, " ") ?? "—"}`} 
-          />
-          <StatusPill status={caseData.status} />
-        </div>
-      </div>
-
-      {/* Case Status Interactive Timeline */}
-      <div className="bg-white rounded-xl border border-slate-100 p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative">
-          <div className="absolute left-6 right-6 top-[22px] h-[2px] bg-slate-100 hidden md:block z-0" />
-          {milestones.map((m, idx) => {
-            const isCompleted = idx <= currentMilestoneIdx && caseData.status !== "CANCELLED";
-            const isCurrent = idx === currentMilestoneIdx;
-            return (
-              <div key={m.status} className="flex flex-row md:flex-col items-center gap-3 relative z-10 w-full md:w-auto">
-                <div className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all ${
-                  isCompleted 
-                    ? "bg-[#C9A84C] border-[#C9A84C] text-[#0D1B2A] shadow-md shadow-[#C9A84C]/25" 
-                    : "bg-white border-slate-200 text-slate-400"
-                } ${isCurrent ? "scale-110 ring-4 ring-[#C9A84C]/10" : ""}`}>
-                  {isCompleted ? "✓" : idx + 1}
-                </div>
-                <div className="text-left md:text-center">
-                  <p className={`text-xs font-bold uppercase tracking-wider ${isCompleted ? "text-[#0D1B2A]" : "text-slate-400"}`}>{m.label}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">{isCurrent ? "Active Step" : ""}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column (Main description and inputs) */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Description */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-            <SectionHeader title="Description" />
-            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-              {caseData.description}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <span
+                className="text-[11px] font-bold uppercase tracking-[0.08em] px-2.5 py-1 rounded-lg"
+                style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }}
+              >
+                Case #{caseData.id}
+              </span>
+              <span
+                className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                style={{ background: "var(--bg)", color: "var(--text-muted)" }}
+              >
+                {caseData.caseType?.replace(/_/g, " ")}
+              </span>
+              <StatusPill status={caseData.status} />
+            </div>
+            <h1 className="text-xl font-black" style={{ color: "var(--text)" }}>
+              {caseData.title}
+            </h1>
+            <p className="text-sm mt-1.5" style={{ color: "var(--text-muted)" }}>
+              Filed on {formatDate(caseData.createdAt)}
+              {caseData.lawyerName && ` · Assigned to Adv. ${caseData.lawyerName}`}
             </p>
           </div>
+        </div>
+      </div>
 
-          {/* Secure Order Copy Box */}
-          {caseData.orderCopyPath && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-              <SectionHeader title="Case Order Copy" subtitle="Official copy of the resolved court proceedings document." />
-              
-              {isCaseFeePaid || user?.role !== "CLIENT" ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-700">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-green-800">Final Order Copy Uploaded</p>
-                      <p className="text-xs text-green-600 font-medium">Click download to fetch the case resolution file.</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleDownloadOrderCopy}
-                    className="bg-[#0D1B2A] hover:bg-[#1A3050] text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
+      {/* Progress Timeline */}
+      <div
+        className="rounded-2xl p-6"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-light)",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] mb-5" style={{ color: "var(--text-light)" }}>
+          Case Progress
+        </p>
+
+        <div className="relative">
+          {/* Background connector */}
+          <div className="absolute left-0 right-0 top-5 h-0.5 hidden md:block" style={{ background: "var(--border)" }} />
+          {/* Progress connector */}
+          {caseData.status !== "CANCELLED" && (
+            <div
+              className="absolute left-0 top-5 h-0.5 hidden md:block transition-all duration-700"
+              style={{
+                background: "linear-gradient(90deg, var(--gold-dark), var(--gold))",
+                width: `${progressPct}%`,
+                zIndex: 1,
+              }}
+            />
+          )}
+
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-2 relative z-10">
+            {milestones.map((m, idx) => {
+              const isCompleted = idx <= currentMilestoneIdx && caseData.status !== "CANCELLED";
+              const isCurrent = idx === currentMilestoneIdx && caseData.status !== "CANCELLED";
+
+              return (
+                <div key={m.status} className="flex flex-row md:flex-col items-center gap-3 md:gap-2 flex-1">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 transition-all duration-300"
+                    style={
+                      isCompleted
+                        ? {
+                            background: "linear-gradient(135deg, var(--gold-dark), var(--gold))",
+                            color: "var(--navy)",
+                            boxShadow: isCurrent ? "0 0 0 4px rgba(201,168,76,0.2)" : "0 2px 8px rgba(201,168,76,0.3)",
+                          }
+                        : {
+                            background: "var(--bg)",
+                            border: "2px solid var(--border)",
+                            color: "var(--text-light)",
+                          }
+                    }
                   >
-                    Download PDF
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#C9A84C]/10 rounded-full flex items-center justify-center text-[#C9A84C]">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[#0D1B2A]">Final Order Copy is Locked</p>
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed">The final order document has been uploaded by the lawyer. Complete payment of the case fee to unlock download access.</p>
-                    </div>
+                    {isCompleted ? "✓" : m.icon}
                   </div>
-                  <span className="text-xs font-bold text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0">
-                    🔒 Locked
-                  </span>
+                  <div className="md:text-center">
+                    <p
+                      className="text-xs font-bold"
+                      style={{ color: isCompleted ? "var(--text)" : "var(--text-light)" }}
+                    >
+                      {m.label}
+                    </p>
+                    {isCurrent && (
+                      <p className="text-[10px] font-semibold" style={{ color: "var(--gold)" }}>
+                        Current
+                      </p>
+                    )}
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+
+        {caseData.status === "CANCELLED" && (
+          <div
+            className="mt-4 rounded-xl p-3 flex items-center gap-2"
+            style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ color: "#EF4444" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <p className="text-xs font-semibold" style={{ color: "#B91C1C" }}>
+              This case has been cancelled.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Description */}
+          <div
+            className="rounded-2xl"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border-light)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <div
+              className="px-5 py-4"
+              style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                Case Description
+              </p>
+            </div>
+            <div className="p-5">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-muted)" }}>
+                {caseData.description}
+              </p>
+            </div>
+          </div>
+
+          {/* Order Copy */}
+          {caseData.orderCopyPath && (
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-light)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div
+                className="px-5 py-4"
+                style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                  Case Order Copy
+                </p>
+              </div>
+              <div className="p-5">
+                {isCaseFeePaid || user?.role !== "CLIENT" ? (
+                  <div
+                    className="rounded-xl p-4 flex items-center justify-between gap-4"
+                    style={{ background: "#ECFDF5", border: "1px solid #A7F3D0" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: "#D1FAE5", color: "#10B981" }}
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: "#065F46" }}>
+                          Final Order Copy Ready
+                        </p>
+                        <p className="text-xs" style={{ color: "#059669" }}>
+                          Click to download the case resolution document.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDownloadOrderCopy}
+                      className="btn-secondary flex-shrink-0"
+                      style={{ height: "36px", fontSize: "12px", padding: "0 16px" }}
+                    >
+                      Download PDF
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-xl p-4 flex items-center justify-between gap-4"
+                    style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: "#FEF3C7", color: "#B45309" }}
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: "#92400E" }}>
+                          Document Locked
+                        </p>
+                        <p className="text-xs leading-relaxed" style={{ color: "#B45309" }}>
+                          Complete the consultation fee payment to unlock this document.
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
+                      style={{ background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }}
+                    >
+                      🔒 Locked
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Laws */}
+          {/* Tagged Laws */}
           {caseData.taggedLaws && caseData.taggedLaws.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-              <SectionHeader title="Relevant Laws" />
-              <div className="flex flex-wrap gap-2">
-                {caseData.taggedLaws.map(law => (
-                  <span key={law} className="bg-slate-50 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold border border-slate-100">
+            <div
+              className="rounded-2xl"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-light)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div
+                className="px-5 py-4"
+                style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                  Relevant Laws
+                </p>
+              </div>
+              <div className="p-5 flex flex-wrap gap-2">
+                {caseData.taggedLaws.map((law) => (
+                  <span
+                    key={law}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                    style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                  >
                     {law}
                   </span>
                 ))}
               </div>
             </div>
           )}
-          
-          {/* Status Update & Actions (LAWYER/ADMIN) */}
+
+          {/* Lawyer Case Management Panel */}
           {canUpdateStatus && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-6">
-              <SectionHeader title="Case Management & Actions" subtitle="Configure fees, upload resolutions, and manage the case status." />
-              
-              {/* Fee Configuration */}
-              <form onSubmit={handleUpdateFee} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end border-b border-slate-50 pb-6">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">Configure Case Consultation Fee (₹)</label>
-                  <input
-                    type="text"
-                    required
-                    value={feeInput}
-                    onChange={(e) => setFeeInput(e.target.value)}
-                    placeholder="e.g. 15000"
-                    className="w-full h-10 border border-slate-200 focus:border-[#C9A84C] outline-none rounded-lg px-3 text-sm text-[#0D1B2A] transition-colors"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={updatingFee}
-                  className="bg-[#0D1B2A] hover:bg-[#1A3050] text-white h-10 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center"
-                >
-                  {updatingFee ? "Saving..." : "Save Case Fee"}
-                </button>
-              </form>
-
-              {/* PDF/Order Copy Upload */}
-              {(caseData.status === "IN_PROGRESS" || caseData.status === "RESOLVED") && (
-                <div className="border-b border-slate-50 pb-6 space-y-2">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Upload Court Final Order Copy (PDF only)</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      disabled={uploadingFile}
-                      onChange={handleFileUpload}
-                      className="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#C9A84C]/10 file:text-[#0D1B2A] hover:file:bg-[#C9A84C]/25 cursor-pointer"
-                    />
-                    {uploadingFile && <span className="text-xs text-[#C9A84C] font-bold animate-pulse">Uploading file...</span>}
-                  </div>
-                </div>
-              )}
-
-              {/* Transition actions */}
-              {nextStatuses.length > 0 ? (
+            <div
+              className="rounded-2xl"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-light)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <div
+                className="px-5 py-4"
+                style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                  Case Management
+                </p>
+              </div>
+              <div className="p-5 space-y-5">
+                {/* Fee Configuration */}
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Transition Case Status</label>
-                  <div className="flex flex-wrap gap-2.5">
-                    {nextStatuses.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => handleStatusUpdate(s)}
-                        disabled={updatingStatus}
-                        className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#0D1B2A] px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
-                      >
-                        Mark as {s.replace(/_/g, " ")}
-                      </button>
-                    ))}
-                  </div>
+                  <label
+                    className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    Consultation Fee (₹)
+                  </label>
+                  <form onSubmit={handleUpdateFee} className="flex gap-3">
+                    <input
+                      type="number"
+                      required
+                      value={feeInput}
+                      onChange={(e) => setFeeInput(e.target.value)}
+                      placeholder="e.g. 15000"
+                      className="input-field flex-1"
+                      min="1"
+                    />
+                    <button
+                      type="submit"
+                      disabled={updatingFee}
+                      className="btn-secondary flex-shrink-0"
+                      style={{ height: "44px", padding: "0 20px", fontSize: "13px" }}
+                    >
+                      {updatingFee ? "Saving…" : "Set Fee"}
+                    </button>
+                  </form>
                 </div>
-              ) : (
-                <p className="text-xs font-semibold text-slate-400 italic">No further status transitions available for this case.</p>
-              )}
+
+                {/* PDF Upload */}
+                {(caseData.status === "IN_PROGRESS" || caseData.status === "RESOLVED") && (
+                  <div
+                    className="pt-5"
+                    style={{ borderTop: "1px solid var(--border-light)" }}
+                  >
+                    <label
+                      className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-2"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Upload Court Order Copy (PDF)
+                    </label>
+                    <div
+                      className="flex items-center gap-3 p-4 rounded-xl"
+                      style={{ background: "var(--bg)", border: "1.5px dashed var(--border)" }}
+                    >
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        disabled={uploadingFile}
+                        onChange={handleFileUpload}
+                        className="text-xs"
+                        style={{ color: "var(--text-muted)" }}
+                      />
+                      {uploadingFile && (
+                        <span
+                          className="text-xs font-bold animate-pulse"
+                          style={{ color: "var(--gold)" }}
+                        >
+                          Uploading…
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Status Transitions */}
+                {nextStatuses.length > 0 && (
+                  <div
+                    className="pt-5"
+                    style={{ borderTop: "1px solid var(--border-light)" }}
+                  >
+                    <label
+                      className="block text-[11px] font-bold uppercase tracking-[0.08em] mb-3"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Advance Case Status
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {nextStatuses.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => handleStatusUpdate(s)}
+                          disabled={updatingStatus}
+                          className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${
+                            s === "CANCELLED"
+                              ? ""
+                              : "btn-primary"
+                          }`}
+                          style={
+                            s === "CANCELLED"
+                              ? {
+                                  background: "#FEF2F2",
+                                  color: "#B91C1C",
+                                  border: "1px solid #FECACA",
+                                  height: "auto",
+                                }
+                              : {}
+                          }
+                        >
+                          {updatingStatus ? "Updating…" : `Mark as ${s.replace(/_/g, " ")}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {nextStatuses.length === 0 && (
+                  <p
+                    className="text-xs font-medium italic"
+                    style={{ color: "var(--text-light)" }}
+                  >
+                    No further status transitions available.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right Column (Side details & Payments) */}
-        <div className="space-y-8">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-6">
-            <SectionHeader title="Case Details" />
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Client</p>
-                <p className="text-sm font-bold text-[#0D1B2A]">{caseData.clientName}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Lawyer</p>
-                {caseData.lawyerName ? (
-                  <p className="text-sm font-bold text-[#0D1B2A]">{caseData.lawyerName}</p>
-                ) : (
-                  <p className="text-sm font-medium text-slate-500 italic">Not Assigned</p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Last Updated</p>
-                <p className="text-sm font-bold text-[#0D1B2A]">{formatDate(caseData.updatedAt)}</p>
-              </div>
-
-              {caseData.quotedAmount && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Case Consultation Fee</p>
-                  <p className="text-sm font-bold text-[#0D1B2A]">₹{Number(caseData.quotedAmount).toLocaleString("en-IN")}</p>
-                </div>
-              )}
+        {/* Right Column */}
+        <div className="space-y-5">
+          {/* Case Info Card */}
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border-light)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            <div
+              className="px-5 py-4"
+              style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                Case Details
+              </p>
+            </div>
+            <div className="p-5 space-y-4">
+              {[
+                { label: "Client", value: caseData.clientName },
+                {
+                  label: "Assigned Lawyer",
+                  value: caseData.lawyerName || null,
+                  fallback: "Not Assigned",
+                },
+                { label: "Case Type", value: caseData.caseType?.replace(/_/g, " ") },
+                { label: "Last Updated", value: formatDate(caseData.updatedAt) },
+                caseData.quotedAmount
+                  ? {
+                      label: "Consultation Fee",
+                      value: `₹${Number(caseData.quotedAmount).toLocaleString("en-IN")}`,
+                    }
+                  : null,
+              ]
+                .filter(Boolean)
+                .map((item) => {
+                  if (!item) return null;
+                  const info = item as { label: string; value: string | null; fallback?: string };
+                  return (
+                    <div key={info.label}>
+                      <p
+                        className="text-[10px] font-bold uppercase tracking-[0.08em] mb-1"
+                        style={{ color: "var(--text-light)" }}
+                      >
+                        {info.label}
+                      </p>
+                      {info.value ? (
+                        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                          {info.value}
+                        </p>
+                      ) : (
+                        <p className="text-sm italic" style={{ color: "var(--text-light)" }}>
+                          {info.fallback}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
           {/* Payment Panel */}
           {caseData.quotedAmount && (
-             <PaymentPanel 
-               caseId={caseData.id} 
-               amount={Number(caseData.quotedAmount)} 
-               onPaymentSuccess={() => setIsCaseFeePaid(true)} 
-             />
+            <PaymentPanel
+              caseId={caseData.id}
+              amount={Number(caseData.quotedAmount)}
+              onPaymentSuccess={() => setIsCaseFeePaid(true)}
+            />
           )}
         </div>
       </div>
 
-      {/* Case Messages / Follow-Up Chat Panel */}
+      {/* Chat Panel */}
       {caseData.lawyerId ? (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <SectionHeader 
-            title="Case Discussion & Follow-Ups" 
-            subtitle="Send questions, requests, or update follow-up messages about this case." 
-          />
-          
-          {/* Messages List Area */}
-          <div className="border border-slate-50 rounded-xl p-4 bg-[#FAFAF8] max-h-[350px] overflow-y-auto space-y-4 flex flex-col">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border-light)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div
+            className="px-5 py-4"
+            style={{ borderBottom: "1px solid var(--border-light)", background: "var(--surface-2)" }}
+          >
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--text-light)" }}>
+                Case Discussion
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>
+                Secure communication channel between client and lawyer
+              </p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div
+            className="p-4 max-h-[400px] overflow-y-auto flex flex-col gap-4"
+            style={{ background: "#FAFAFA" }}
+          >
             {messages.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-xs font-semibold italic">
-                No follow-up messages exchanged yet. Use the chat window to coordinate.
+              <div className="text-center py-12">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                  style={{ background: "var(--bg)", color: "var(--text-light)" }}
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 18c-.387 0-.773-.054-1.15-.163a.502.502 0 01-.302-.679l.018-.043a5.975 5.975 0 014.288-4.086 9.765 9.765 0 01-.118-1.53c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+                  No messages yet
+                </p>
+                <p className="text-xs mt-1" style={{ color: "var(--text-light)" }}>
+                  Send the first message to start the discussion.
+                </p>
               </div>
             ) : (
               messages.map((m) => {
                 const isMe = m.senderName === user?.fullName;
                 return (
-                  <div key={m.id} className={`flex flex-col space-y-1 max-w-[80%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
+                  <div
+                    key={m.id}
+                    className={`flex flex-col gap-1 max-w-[78%] ${isMe ? "self-end items-end" : "self-start items-start"}`}
+                  >
                     <div className="flex items-center gap-1.5 px-1">
-                      <span className="text-[10px] font-bold text-[#0D1B2A]">{m.senderName}</span>
-                      <span className={`text-[9px] font-semibold uppercase px-1 rounded-sm ${
-                        m.senderRole === "CLIENT" ? "bg-blue-50 text-blue-600" : "bg-[#C9A84C]/10 text-[#C9A84C]"
-                      }`}>{m.senderRole}</span>
+                      <span className="text-[11px] font-bold" style={{ color: "var(--text)" }}>
+                        {m.senderName}
+                      </span>
+                      <span
+                        className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                        style={
+                          m.senderRole === "CLIENT"
+                            ? { background: "#EFF6FF", color: "#1D4ED8" }
+                            : { background: "rgba(201,168,76,0.12)", color: "var(--gold-dark)" }
+                        }
+                      >
+                        {m.senderRole}
+                      </span>
                     </div>
-                    <div className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm font-medium ${
-                      isMe 
-                        ? "bg-[#0D1B2A] text-white rounded-tr-none" 
-                        : "bg-white text-[#0d1b2a] border border-slate-100 rounded-tl-none"
-                    }`}>
+                    <div
+                      className="px-4 py-3 text-sm leading-relaxed font-medium"
+                      style={
+                        isMe
+                          ? { background: "var(--navy)", color: "white", borderRadius: "18px 18px 4px 18px" }
+                          : {
+                              background: "var(--surface)",
+                              color: "var(--text)",
+                              border: "1px solid var(--border-light)",
+                              borderRadius: "18px 18px 18px 4px",
+                            }
+                      }
+                    >
                       {m.message}
                     </div>
-                    <span className="text-[9px] text-slate-400 px-1.5">{formatDate(m.createdAt)} • {formatTime(m.createdAt)}</span>
+                    <span className="text-[10px] px-1" style={{ color: "var(--text-light)" }}>
+                      {formatDate(m.createdAt)} · {formatTime(m.createdAt)}
+                    </span>
                   </div>
                 );
               })
             )}
           </div>
 
-          {/* Input area */}
-          <form onSubmit={handleSendMessage} className="flex gap-3">
-            <input
-              type="text"
-              required
-              disabled={sendingMsg}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a follow-up message..."
-              className="flex-1 h-11 border border-slate-200 focus:border-[#C9A84C] outline-none rounded-xl px-4 text-sm text-[#0D1B2A] transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={sendingMsg || !newMessage.trim()}
-              className="bg-[#C9A84C] hover:bg-[#E8C97A] text-[#0D1B2A] px-6 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center shrink-0"
-            >
-              {sendingMsg ? "Sending..." : "Send Msg"}
-            </button>
-          </form>
+          {/* Input */}
+          <div
+            className="p-4"
+            style={{ borderTop: "1px solid var(--border-light)" }}
+          >
+            <form onSubmit={handleSendMessage} className="flex gap-3">
+              <input
+                type="text"
+                required
+                disabled={sendingMsg}
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a follow-up message…"
+                className="input-field flex-1"
+              />
+              <button
+                type="submit"
+                disabled={sendingMsg || !newMessage.trim()}
+                className="btn-primary flex-shrink-0"
+                style={{ minWidth: "90px" }}
+              >
+                {sendingMsg ? "Sending…" : "Send"}
+              </button>
+            </form>
+          </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 text-center space-y-3">
-          <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 18c-.387 0-.773-.054-1.15-.163a.502.502 0 01-.302-.679l.018-.043a5.975 5.975 0 014.288-4.086 9.765 9.765 0 01-.118-1.53c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+        <div
+          className="rounded-2xl p-10 text-center"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border-light)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+            style={{ background: "var(--bg)", color: "var(--text-light)" }}
+          >
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <h3 className="text-sm font-bold text-[#0D1B2A]">Secure Discussion Board Inactive</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-            The secure case message board will become active once an advocate accepts this case. You will then be able to coordinate and chat directly with your lawyer.
+          <h3 className="font-bold text-base" style={{ color: "var(--text)" }}>
+            Secure Discussion Board Inactive
+          </h3>
+          <p className="text-sm mt-2 max-w-sm mx-auto leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            The secure case message board activates once an advocate accepts this case. You&apos;ll then be able to communicate directly with your lawyer.
           </p>
         </div>
       )}
