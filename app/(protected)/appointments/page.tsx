@@ -435,8 +435,8 @@ function ApptCard({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.879A1.5 1.5 0 0013 15v-1a1.5 1.5 0 011-1.5M12 6v12" />
                   </svg>
                   Consultation Fee: ₹{Number(a.consultationFee).toLocaleString("en-IN")} · 
-                  <span className={`font-bold ${a.isPaid ? "text-green-600" : "text-amber-600"}`}>
-                    {a.isPaid ? "Paid ✓" : "Unpaid"}
+                  <span className={`font-bold ${a.feePaid ? "text-green-600" : "text-amber-600"}`}>
+                    {a.feePaid ? "Paid" : "Unpaid"}
                   </span>
                 </span>
               )}
@@ -479,7 +479,7 @@ function ApptCard({
               </button>
             )
           )}
-          {user?.role === "CLIENT" && !a.isPaid && a.consultationFee && ["PENDING", "CONFIRMED"].includes(a.status) && (
+          {user?.role === "CLIENT" && !a.feePaid && a.consultationFee && ["PENDING", "CONFIRMED"].includes(a.status) && (
             <button
               onClick={handlePay}
               disabled={paying}

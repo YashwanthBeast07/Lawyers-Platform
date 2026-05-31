@@ -1,12 +1,60 @@
 // ── Enums (mirrors backend) ───────────────────────────────────────────────────
 
-export type CaseStatus = "OPEN" | "ASSIGNED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED" | "CANCELLED";
+export type CaseStatus =
+  | "OPEN"
+  | "DRAFT"
+  | "AWAITING_CLIENT_REVIEW"
+  | "AWAITING_DOCUMENTS"
+  | "UNDER_REVIEW"
+  | "AWAITING_PAYMENT"
+  | "ASSIGNED"
+  | "ACTIVE"
+  | "AWAITING_CLIENT_ACTION"
+  | "FILING_IN_PROGRESS"
+  | "FILED"
+  | "HEARING_SCHEDULED"
+  | "AWAITING_COURT_UPDATE"
+  | "NEGOTIATION"
+  | "SETTLEMENT_PROPOSED"
+  | "RESOLVED"
+  | "AWAITING_FINAL_PAYMENT"
+  | "IN_PROGRESS"
+  | "CLOSED"
+  | "ARCHIVED"
+  | "DISPUTED"
+  | "CANCELLED";
+
 export type CaseType = "CIVIL" | "CRIMINAL" | "CORPORATE" | "FAMILY" | "PROPERTY" | "CYBER" | "OTHER";
-export type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+export type CaseUrgency = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type ConsultationOutcome =
+  | "COMPLETED_ONLY"
+  | "FOLLOW_UP_REQUIRED"
+  | "CONVERT_TO_CASE"
+  | "OUTSIDE_EXPERTISE"
+  | "URGENT_ESCALATION"
+  | "REJECTED";
+
+export type AppointmentStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW"
+  | "MISSED_CLIENT"
+  | "MISSED_LAWYER";
+
 export type AppointmentMode = "ONLINE" | "IN_PERSON";
 export type PaymentStatus = "INITIATED" | "CREATED" | "SUCCESS" | "FAILED" | "PENDING" | "REFUNDED";
 export type PaymentMethod = "CARD" | "UPI" | "BANK_TRANSFER" | "WALLET";
-export type NotificationType = "BOOKING" | "PAYMENT" | "CASE_UPDATE" | "SYSTEM" | "REVIEW";
+export type NotificationType =
+  | "BOOKING"
+  | "PAYMENT"
+  | "CASE_UPDATE"
+  | "SYSTEM"
+  | "REVIEW"
+  | "FEE_PROPOSED"
+  | "FEE_ACCEPTED";
 export type UserRole = "CLIENT" | "LAWYER" | "ADMIN";
 
 // ── Shared Wrapper ─────────────────────────────────────────────────────────────
@@ -107,12 +155,24 @@ export interface SessionResponse {
 
 export interface CaseResponse {
   id: number;
+  caseNumber?: string;
   title: string;
   description: string;
   caseType: CaseType;
+  subCategory?: string;
   status: CaseStatus;
+  urgency?: CaseUrgency;
+  city?: string;
+  state?: string;
+  jurisdiction?: string;
+  courtName?: string;
+  estimatedTimelineDays?: number;
   quotedAmount?: number;
+  feeAccepted?: boolean;
+  firstPaymentPct?: number;
   orderCopyPath?: string;
+  finalSummaryPath?: string;
+  sourceAppointmentId?: number;
   clientId: number;
   clientName: string;
   lawyerId?: number;
@@ -126,7 +186,15 @@ export interface CaseRequestDto {
   title: string;
   description: string;
   caseType: CaseType;
+  subCategory?: string;
+  city?: string;
+  state?: string;
+  jurisdiction?: string;
+  courtName?: string;
+  urgency?: CaseUrgency;
+  estimatedTimelineDays?: number;
   lawyerId?: number;
+  sourceAppointmentId?: number;
   lawIds?: number[];
 }
 
@@ -146,6 +214,84 @@ export interface CaseMessageResponse {
   createdAt: string;
 }
 
+// ── Hearings ──────────────────────────────────────────────────────────────────
+
+export interface CaseHearing {
+  id: number;
+  caseId: number;
+  hearingDate: string;  // LocalDate → "YYYY-MM-DD"
+  hearingTime?: string; // LocalTime → "HH:MM"
+  court?: string;
+  purpose?: string;
+  outcome?: string;
+  nextHearingDate?: string;
+  createdAt: string;
+}
+
+export interface CaseHearingRequest {
+  hearingDate: string;
+  hearingTime?: string;
+  court?: string;
+  purpose?: string;
+}
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+
+export interface CaseTask {
+  id: number;
+  caseId: number;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  assignedToId?: number;
+  completed: boolean;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface CaseTaskRequest {
+  title: string;
+  description?: string;
+  dueDate?: string;
+  assignedToId?: number;
+}
+
+// ── Milestones ────────────────────────────────────────────────────────────────
+
+export interface CaseMilestone {
+  id: number;
+  caseId: number;
+  title: string;
+  description?: string;
+  amount: number;
+  dueDate?: string;
+  sequenceOrder: number;
+  paid: boolean;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface CaseMilestoneRequest {
+  title: string;
+  description?: string;
+  amount: number;
+  dueDate?: string;
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+
+export interface CaseAuditEntry {
+  id: number;
+  caseId: number;
+  actorId?: number;
+  actorName?: string;
+  action: string;
+  oldValue?: string;
+  newValue?: string;
+  note?: string;
+  createdAt: string;
+}
+
 // ── Appointments ───────────────────────────────────────────────────────────────
 
 export interface AppointmentResponse {
@@ -160,15 +306,18 @@ export interface AppointmentResponse {
   durationMinutes: number;
   mode: AppointmentMode;
   status: AppointmentStatus;
+  outcome?: ConsultationOutcome;
+  summary?: string;
   notes?: string;
   createdAt: string;
   consultationFee?: number;
-  isPaid?: boolean;
+  feePaid?: boolean;
 }
 
 export interface AppointmentRequest {
   caseRequestId: number;
-  scheduledAt: string; // ISO datetime
+  lawyerId?: number;
+  scheduledAt: string;
   durationMinutes?: number;
   mode?: AppointmentMode;
   notes?: string;

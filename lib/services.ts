@@ -6,9 +6,16 @@ import type {
   AppointmentStatus,
   AssignLawyerRequest,
   AuthResponse,
+  CaseAuditEntry,
+  CaseHearing,
+  CaseHearingRequest,
+  CaseMilestone,
+  CaseMilestoneRequest,
   CaseRequestDto,
   CaseResponse,
   CaseStatus,
+  CaseTask,
+  CaseTaskRequest,
   CreateOrderRequest,
   LawyerProfileResponse,
   LoginRequest,
@@ -211,12 +218,66 @@ export const caseService = {
     return data.data;
   },
 
+  async acceptFee(id: number): Promise<CaseResponse> {
+    const { data } = await api.post<ApiResponse<CaseResponse>>(`/cases/${id}/accept-fee`);
+    return data.data;
+  },
+
   async getAllCases(params: {
     status?: CaseStatus;
     page?: number;
     size?: number;
   }): Promise<PagedResponse<CaseResponse>> {
     const { data } = await api.get<ApiResponse<PagedResponse<CaseResponse>>>("/cases/admin/all", { params });
+    return data.data;
+  },
+
+  // Hearings
+  async addHearing(caseId: number, payload: CaseHearingRequest): Promise<CaseHearing> {
+    const { data } = await api.post<ApiResponse<CaseHearing>>(`/cases/${caseId}/hearings`, payload);
+    return data.data;
+  },
+
+  async updateHearingOutcome(hearingId: number, outcome: string): Promise<CaseHearing> {
+    const { data } = await api.patch<ApiResponse<CaseHearing>>(`/hearings/${hearingId}/outcome`, { outcome });
+    return data.data;
+  },
+
+  async getHearings(caseId: number): Promise<CaseHearing[]> {
+    const { data } = await api.get<ApiResponse<CaseHearing[]>>(`/cases/${caseId}/hearings`);
+    return data.data;
+  },
+
+  // Tasks
+  async createTask(caseId: number, payload: CaseTaskRequest): Promise<CaseTask> {
+    const { data } = await api.post<ApiResponse<CaseTask>>(`/cases/${caseId}/tasks`, payload);
+    return data.data;
+  },
+
+  async completeTask(taskId: number): Promise<CaseTask> {
+    const { data } = await api.patch<ApiResponse<CaseTask>>(`/tasks/${taskId}/complete`);
+    return data.data;
+  },
+
+  async getTasks(caseId: number): Promise<CaseTask[]> {
+    const { data } = await api.get<ApiResponse<CaseTask[]>>(`/cases/${caseId}/tasks`);
+    return data.data;
+  },
+
+  // Milestones
+  async createMilestone(caseId: number, payload: CaseMilestoneRequest): Promise<CaseMilestone> {
+    const { data } = await api.post<ApiResponse<CaseMilestone>>(`/cases/${caseId}/milestones`, payload);
+    return data.data;
+  },
+
+  async getMilestones(caseId: number): Promise<CaseMilestone[]> {
+    const { data } = await api.get<ApiResponse<CaseMilestone[]>>(`/cases/${caseId}/milestones`);
+    return data.data;
+  },
+
+  // Audit log
+  async getAuditLog(caseId: number): Promise<CaseAuditEntry[]> {
+    const { data } = await api.get<ApiResponse<CaseAuditEntry[]>>(`/cases/${caseId}/audit`);
     return data.data;
   },
 };
